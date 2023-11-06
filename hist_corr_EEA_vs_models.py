@@ -863,5 +863,5 @@ for cod_station in list_cod_stations:
                         cod_station, year_to_consider, windows_lenght, \
                         method_corr, is_previous_elems, \
                         list_corr_cams_eu_vs_geos_cf, list_corr_EEA_vs_geos_cf, \
-                        list_corr_geos_cf_vs_cams_global, air_poll_selected, PATH_DIR_PLOTS
+                        list_corr_geos_cf_vs_cams_global, air_poll_selected, PATH_DIR_PLOTS_current
                 )
