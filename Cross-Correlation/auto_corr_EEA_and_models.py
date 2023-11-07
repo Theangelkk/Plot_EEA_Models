@@ -1,6 +1,6 @@
-# conda activate Plot_all_air_pol
+# Auto-correlation EEA and Models
 
-# Libraries
+# Libreries
 import os
 import sys
 
@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 import xarray as xr
 import matplotlib.dates as mdates
+from pandas.plotting import autocorrelation_plot
 import gc
 import warnings
 
@@ -22,31 +23,19 @@ warnings.filterwarnings("ignore")
 def joinpath(rootdir, targetdir):
     return os.path.join(os.sep, rootdir + os.sep, targetdir)
 
-def valid_datetime(dt):
-    for fmt in ('%Y-%m-%dT%H:%M', '%Y-%m-%dT%H:%M:%S',
-                '%Y-%m-%d %H:%M', '%Y-%m-%d %H:%M:%S'):
-        try:
-            return datetime.strptime(dt, fmt)
-        except ValueError:
-            pass
-    raise argparse.ArgumentTypeError("Invalid date: '{0}'.".format(dt))
-
-def valid_date(d):
-    t = 'T00:00'
-    return valid_datetime(d + t)
-
+list_years = [2013 + idx for idx in range(0,2023-2013)]
+list_methods_of_corr = ['pearson', 'kendall', 'spearman']
 list_air_pollutant = ["CO", "NO2", "O3", "PM2.5", "PM10", "SO2"]
 list_numeric_model_cams_eu = [  "chimere", "ensemble", "EMEP", "LOTOS-EUROS", "MATCH", \
                                 "MINNI", "MOCAGE", "SILAM", "EURAD-IM", "DEHM", "GEM-AQ"]
 
-parser = argparse.ArgumentParser(description='Plot EEA - CAMS Europe - GEOS CF - CAMS Global')
+parser = argparse.ArgumentParser(description='Auto-Correlation EEA - CAMS EU - GEOS CF - CAMS GLOBALE')
 parser.add_argument('-a', '--air_pollutant', help='Air Pollutant CO - NO2 - O3 - PM2.5 - PM10 - SO2', choices=list_air_pollutant, required=True)
 parser.add_argument('-list_cod_stations', '--list_cod_stations', help='List of code stations EEA', nargs='+', required=True)
 parser.add_argument('-m_air_pol', '--m_air_pol', help='Model level for air pollution', type=int, required=True)
 parser.add_argument('-m_pm', '--m_pm', help='Model level for Particulate', type=int, required=True)
 parser.add_argument('-delta_h', '--delta_hours', type=int, required=True)
-parser.add_argument('-s_date', '--start_date', metavar='YYYY-MM-DD HH:MM:SS', type=valid_datetime, required=True)
-parser.add_argument('-e_date', '--end_date', metavar='YYYY-MM-DD HH:MM:SS', type=valid_datetime, required=True)
+parser.add_argument('-year', '--year', help='Year to consider (2013,2023)', type=int, choices=list_years, required=True)
 parser.add_argument('-cams_eu', '--cams_eu', help='chimere - ensemble - EMEP - LOTOS-EUROS - MATCH - MINNI - MOCAGE - SILAM - EURAD-IM - DEHM - GEM-AQ', \
                      choices=list_numeric_model_cams_eu, required=True)
 parser.add_argument('-compute_air_dens', '--compute_air_density', help='Compute with formula the air density', action='store_true')
@@ -56,8 +45,7 @@ args = vars(parser.parse_args())
 
 air_poll_selected = args["air_pollutant"]
 list_cod_stations = args["list_cod_stations"]
-start_date_time_to_display = args["start_date"]
-end_date_time_to_display = args["end_date"]
+year_to_consider = args["year"]
 
 # If it asked the visualization of CO in ug/m^3
 co_in_ug_m3 = args["co_ug_m^3"]
@@ -65,8 +53,8 @@ co_in_ug_m3 = args["co_ug_m^3"]
 # If it is request to save the plot
 save_plot = args["save_plot"]
 
-# Model level 55: about 288 meters [CAMS Global, GEOS CF, CAMS Europe]
-# Model level 60: about 10 meters [CAMS Global, CAMS Europe]
+# Model level 55: about 288 meters [CAMS Globale, GEOS CF, CAMS EU]
+# Model level 60: about 10 meters [CAMS Globale, CAMS EU]
 if args["m_air_pol"] != 60 and args["m_air_pol"] != 55:
     print("Error: Model level of air pollution must be equal to 60 or 55")
     exit(-1)
@@ -85,36 +73,6 @@ fixed_air_density = not bool(args["compute_air_density"])
 
 if args["delta_hours"] > 0:
     delta_time_houes = int(args["delta_hours"])
-
-# Limit values WHO: https://www.who.int/news-room/feature-stories/detail/what-are-the-who-air-quality-guidelines
-
-dict_limit_air_pollutants = {}
-
-# NO2 limit value for 24 hours average: 25.0 ug/m3
-dict_limit_air_pollutants["NO2"] = 25.0
-dict_limit_air_pollutants["NO2"] = 75.0
-
-# CO limit value for 24 hours average: 4.0 mg/m3
-dict_limit_air_pollutants["CO"] = 4.0
-
-# Limit CO in ug/m3
-dict_limit_air_pollutants["CO_ug_m3"] = dict_limit_air_pollutants["CO"] * 1000
-
-# SO2 limit value for 24 hours average: 40.0 ug/m3
-dict_limit_air_pollutants["SO2"] = 40.0
-dict_limit_air_pollutants["SO2"] = 120.0
-
-# O3 limit value for 8 hours average: 100.0 ug/m3
-dict_limit_air_pollutants["O3"] = 100.0
-dict_limit_air_pollutants["O3"] = 250.0
-
-# PM2.5 limit value for 24 hours average: 15.0 ug/m3
-dict_limit_air_pollutants["PM2p5"] = 15.0
-dict_limit_air_pollutants["PM2p5"] = 60.0
-
-# PM10 limit value for 24 hours average: 15.0 ug/m3
-dict_limit_air_pollutants["PM10"] = 15.0
-dict_limit_air_pollutants["PM10"] = 60.0
 
 # -------------- EEA paths --------------
 path_main_dir_EEA = os.environ['EEA_data']
@@ -241,7 +199,6 @@ time_res_cams_global = 3
 
 start_time_cams_global = datetime(2003, 1, 1, 0, 0)
 end_time_cams_global = datetime(2022, 12, 1, 0, 0)
-
 def load_ds_datasets(current_date):
 
     global  dict_start_time_numeric_models_cams_eu, numeric_model_selected, \
@@ -341,57 +298,81 @@ def load_EEA_station(
     return df_station_date_current_year['Concentration'].values, lon_station, lat_station, station_region
 
 # ----------------------- PLOT -----------------------
-def plot(   
-            cod_station, air_pol_selected, list_values_EEA_station, \
-            list_cams_global, list_values_geos_cf, list_values_cams_eu, \
-            PATH_DIR_PLOTS
-        ):
+def plot_hist_EEA(  
+                cod_station, year, windows_lenght, lag,
+                method_corr, is_previous_elems, \
+                list_cross_corr_EEA_vs_cams_global, list_cross_corr_EEA_vs_geos_cf, \
+                list_cross_corr_EEA_vs_cams_eu, air_pol_selected, PATH_DIR_PLOTS
+    ):
 
-    global  start_date_time_to_display, end_date_time_to_display, \
-            delta, co_in_ug_m3, save_plot, dict_limit_air_pollutants
+    bins_range = np.arange(0.0, 1.0, 0.05).tolist()
 
     # Set up the axes and figure
-    fig, ax = plt.subplots()
+    fig = plt.figure()
 
-    dates = mdates.drange(  
-                            start_date_time_to_display, end_date_time_to_display, 
-                            delta
-                        )
+    # ------------ PLOT EEA vs CAMS GLOBAL ------------
+    ax_EEA_vs_cams_global = fig.add_subplot(311)
 
-    ax.plot(dates, list_values_EEA_station, label="EEA")
-    ax.plot(dates, list_cams_global, label="CAMS GLOBAL")
-    ax.plot(dates, list_values_geos_cf, label="GEOS CF")
-    ax.plot(dates, list_values_cams_eu, label="CAMS EU")
+    ax_EEA_vs_cams_global.hist(list_cross_corr_EEA_vs_cams_global, bins = bins_range)
 
-    ax.axhline( y=dict_limit_air_pollutants[air_pol_selected],
-                color='r', linestyle='dotted', label= air_pol_selected + " limit")
-
-    ax.fmt_xdata = mdates.DateFormatter('% Y-% m-% d % H:% M:% S') 
-
-    # Tell matplotlib to interpret the x-axis values as dates
-    ax.xaxis_date()
-
-    # Make space for and rotate the x-axis tick labels
-    # Consente di definire automaticamente la spaziatura tra le
-    # date al fine di ovviare all'overlapping
-    fig.autofmt_xdate()
-
-    if air_pol_selected == "CO" and co_in_ug_m3 == False:
-        title = air_pol_selected + " mg/m^3 " + cod_station + " " \
-                + start_date_time_to_display.isoformat() + " - " + end_date_time_to_display.isoformat()
-        unit = air_pol_selected + " mg/m^3"
+    if is_previous_elems: 
+        ax_EEA_vs_cams_global.set_title( air_pol_selected + " " + method_corr.upper() + \
+                                        " Correlation " + str(year) + \
+                                        " EEA vs CAMS GLOBAL " + str(cod_station) + \
+                                        " - WL: " + str(windows_lenght) + " - Lag: " + str(lag) + \
+                                        " - Previous")
     else:
-        title = air_pol_selected + " μg/m^3 " + cod_station + " " \
-                + start_date_time_to_display.isoformat() + " - " + end_date_time_to_display.isoformat()
-        unit = air_pol_selected + " μg/m^3"
+        ax_EEA_vs_cams_global.set_title( air_pol_selected + " " + method_corr.upper() + \
+                                         " Correlation " + str(year) + \
+                                         " EEA vs CAMS GLOBAL " + str(cod_station) + \
+                                         " - WL: " + str(windows_lenght) + " - Lag: " + str(lag) + \
+                                         " - Centered")
 
-    plt.legend()
-    plt.title(title)
-    plt.xlabel("Datetime")
-    plt.ylabel(unit)
+
+    # ------------ PLOT EEA vs GEOS CF ------------
+    ax_EEA_vs_geos_cf = fig.add_subplot(312)
+
+    ax_EEA_vs_geos_cf.hist(list_cross_corr_EEA_vs_geos_cf, bins = bins_range)
+
+    if is_previous_elems: 
+        ax_EEA_vs_geos_cf.set_title( air_pol_selected + " " + method_corr.upper() + \
+                                        " Correlation " + str(year) + \
+                                        " EEA vs GEOS CF " + str(cod_station) + \
+                                        " - WL: " + str(windows_lenght) + " - Lag: " + str(lag) + \
+                                        " - Previous")
+    else:
+        ax_EEA_vs_geos_cf.set_title( air_pol_selected + " " + method_corr.upper() + \
+                                         " Correlation " + str(year) + \
+                                         " EEA vs GEOS CF " + str(cod_station) + \
+                                         " - WL: " + str(windows_lenght) + " - Lag: " + str(lag) + \
+                                         " - Centered")
+
+    # ------------ PLOT EEA vs CAMS EUROPA ------------
+    ax_EEA_vs_cams_eu = fig.add_subplot(313)
+
+    ax_EEA_vs_cams_eu.hist(list_cross_corr_EEA_vs_cams_eu, bins = bins_range)
+
+    if is_previous_elems: 
+        ax_EEA_vs_cams_eu.set_title( air_pol_selected + " " + method_corr.upper() + \
+                                        " Correlation " + str(year) + \
+                                        " EEA vs CAMS EU " + str(cod_station) + \
+                                        " - WL: " + str(windows_lenght) + " - Lag: " + str(lag) + \
+                                        " - Previous")
+    else:
+        ax_EEA_vs_cams_eu.set_title( air_pol_selected + " " + method_corr.upper() + \
+                                         " Correlation " + str(year) + \
+                                         " EEA vs CAMS EU " + str(cod_station) + \
+                                         " - WL: " + str(windows_lenght) + " - Lag: " + str(lag) + \
+                                         " - Centered")
 
     if save_plot:
-        filename_fig = start_date_time_to_display.date().strftime("%Y-%m-%d") + "_" + end_date_time_to_display.date().strftime("%Y-%m-%d") + ".png"
+        if is_previous_elems: 
+            filename_fig =  str(year) + "_EEA_" + method_corr.upper() + "WL_" + str(windows_lenght) + "_Lag_" + str(lag) + \
+                            "_previous.png"
+        else:
+            filename_fig =  str(year) + "_EEA_" + method_corr.upper() + "WL_" + str(windows_lenght) + "_Lag_" + str(lag) + \
+                            "_centered.png"
+
         path_fig = joinpath(PATH_DIR_PLOTS, filename_fig)
         plt.savefig(path_fig, dpi=300)
     else:
@@ -399,14 +380,99 @@ def plot(
 
     plt.close()
 
-previous_date = start_date_time_to_display
-current_date = start_date_time_to_display
+def plot_hist_models(  
+                        cod_station, year, windows_lenght, lag,
+                        method_corr, is_previous_elems, \
+                        list_cross_corr_cams_eu_vs_geos_cf, list_cross_corr_cams_eu_vs_cams_global, \
+                        list_cross_corr_geos_cf_vs_cams_global, air_pol_selected, PATH_DIR_PLOTS
+    ):
+
+    bins_range = np.arange(0.0, 1.0, 0.05).tolist()
+
+    # Set up the axes and figure
+    fig = plt.figure()
+
+    # ------------ PLOT CAMS EU vs GEOS CF ------------
+    ax_cams_eu_vs_geos_cf = fig.add_subplot(312)
+
+    ax_cams_eu_vs_geos_cf.hist(list_cross_corr_cams_eu_vs_geos_cf, bins = bins_range)
+
+    if is_previous_elems: 
+        ax_cams_eu_vs_geos_cf.set_title( air_pol_selected + " " + method_corr.upper() + \
+                                        " Correlation " + str(year) + \
+                                        " CAMS EU vs GEOS CF " + str(cod_station) + \
+                                        " - WL: " + str(windows_lenght) + " - Lag: " + str(lag) + \
+                                        " - Previous")
+    else:
+        ax_cams_eu_vs_geos_cf.set_title( air_pol_selected + " " + method_corr.upper() + \
+                                         " Correlation " + str(year) + \
+                                         " CAMS EU vs GEOS CF " + str(cod_station) + \
+                                         " - WL: " + str(windows_lenght) + " - Lag: " + str(lag) + \
+                                         " - Centered")
+
+    # ------------ PLOT CAMS EU vs CAMS GLOBAL ------------
+    ax_cams_eu_vs_cams_global = fig.add_subplot(312)
+
+    ax_cams_eu_vs_cams_global.hist(list_cross_corr_cams_eu_vs_cams_global, bins = bins_range)
+
+    if is_previous_elems: 
+        ax_cams_eu_vs_cams_global.set_title( air_pol_selected + " " + method_corr.upper() + \
+                                        " Correlation " + str(year) + \
+                                        " CAMS EU vs CAMS GLOBAL " + str(cod_station) + \
+                                        " - WL: " + str(windows_lenght) + " - Lag: " + str(lag) + \
+                                        " - Previous")
+    else:
+        ax_cams_eu_vs_cams_global.set_title( air_pol_selected + " " + method_corr.upper() + \
+                                         " Correlation " + str(year) + \
+                                         " CAMS EU vs CAMS GLOBAL " + str(cod_station) + \
+                                         " - WL: " + str(windows_lenght) + " - Lag: " + str(lag) + \
+                                         " - Centered")
+
+
+    # ------------ PLOT GEOS CF vs CAMS GLOBAL ------------
+    ax_geos_cf_vs_cams_global = fig.add_subplot(313)
+
+    ax_geos_cf_vs_cams_global.hist(list_cross_corr_geos_cf_vs_cams_global, bins = bins_range)
+
+    if is_previous_elems: 
+        ax_geos_cf_vs_cams_global.set_title( air_pol_selected + " " + method_corr.upper() + \
+                                        " Correlation " + str(year) + \
+                                        " GEOS CF vs CAMS GLOBAL " + str(cod_station) + \
+                                        " - WL: " + str(windows_lenght) + " - Lag: " + str(lag) + \
+                                        " - Previous")
+    else:
+        ax_geos_cf_vs_cams_global.set_title( air_pol_selected + " " + method_corr.upper() + \
+                                         " Correlation " + str(year) + \
+                                         " GEOS CF vs CAMS GLOBAL " + str(cod_station) + \
+                                         " - WL: " + str(windows_lenght) + " - Lag: " + str(lag) + \
+                                         " - Centered")
+
+    if save_plot:
+        if is_previous_elems: 
+            filename_fig =  str(year) + "_MODELS_" + method_corr.upper() + "WL_" + str(windows_lenght) + "_Lag_" + str(lag) + \
+                            "_previous.png"
+        else:
+            filename_fig =  str(year) + "_MODELS_" + method_corr.upper() + "WL_" + str(windows_lenght) + "_Lag_" + str(lag) + \
+                            "_centered.png"
+
+        path_fig = joinpath(PATH_DIR_PLOTS, filename_fig)
+        plt.savefig(path_fig, dpi=300)
+    else:
+        plt.show()
+
+    plt.close()
+
+start_date_year = datetime(year_to_consider, 1, 1, 0, 0)
+end_date_year = datetime(year_to_consider+1, 1, 1, 0, 0)
+
+previous_date = start_date_year
+current_date = start_date_year
 
 ds_cams_eu = None
 ds_cams_global = None
 ds_geos_cf = None
 
-diff_dates = end_date_time_to_display - start_date_time_to_display
+diff_dates = end_date_year - start_date_year
 diff_dates_hours = int(diff_dates.total_seconds() / (60*60*delta_time_houes))
 delta = timedelta(hours=delta_time_houes)
 
@@ -414,8 +480,7 @@ delta = timedelta(hours=delta_time_houes)
 df_air_pol_metainfo = pd.read_table(path_file_air_pol_metainfo, delimiter=',', index_col=0)
 
 # Reading the CSV file about air pollutant defined
-df_air_pol_data = pd.read_table(    
-                                    path_file_data_EEA_csv, delimiter=',', 
+df_air_pol_data = pd.read_table(    path_file_data_EEA_csv, delimiter=',', 
                                     header=[0], index_col=0, low_memory=False
                                 )
 
@@ -435,7 +500,7 @@ dict_values_cams_global = {}
 for cod_station in list_cod_stations:
 
     df_station_date_current_year_values, lon_station, lat_station, region_station = \
-        load_EEA_station(   cod_station, current_date, end_date_time_to_display-delta, \
+        load_EEA_station(   cod_station, current_date, end_date_year-delta, \
                             df_air_pol_data, df_air_pol_metainfo
                         )
     
@@ -460,7 +525,7 @@ for time in range(diff_dates_hours):
 
         for cod_station in list_cod_stations:
             df_station_date_current_year_values, lon_station, lat_station, region_station = \
-                load_EEA_station(   cod_station, current_date, end_date_time_to_display-delta, \
+                load_EEA_station(   cod_station, current_date, end_date_year-delta, \
                                     df_air_pol_data, df_air_pol_metainfo
                             )
     
@@ -476,13 +541,13 @@ for time in range(diff_dates_hours):
     if previous_date.month != current_date.month:
         ds_cams_eu, ds_cams_global, ds_geos_cf = load_ds_datasets(current_date)
 
-    # Recuperiamo tutte le rilevazioni di tutte le stazioni definite
+    # For each stations
     for cod_station in list_cod_stations:
         
         lon_station = dict_code_stations[cod_station][0]
         lat_station = dict_code_stations[cod_station][1]
 
-        # Caricamento datasets
+        # Loading CAMS Europe - GEOS CF - CAMS Global data sets
         if not_available_cams_eu == False:
             ds_current_date_cams_eu = ds_cams_eu.sel(time=current_date.isoformat())
             cams_eu_delta_time = ds_current_date_cams_eu.sel(lat=lat_station, lon=lat_station, method='nearest')[air_poll_selected.lower()].values
@@ -515,7 +580,7 @@ for time in range(diff_dates_hours):
     previous_date = current_date
     current_date += delta
 
-# ------------------ Interpolation of CAMS GLOBALE ------------------
+# ------------------ Interpolation of CAMS GLOBAL ------------------
 for cod_station in list_cod_stations:
 
     dict_cams_global = {'DatetimeBegin': list_datetime_x, 'Concentration': dict_values_cams_global[cod_station]}
@@ -529,7 +594,7 @@ for cod_station in list_cod_stations:
 
     dict_values_cams_global[cod_station] = df_cams_global['Concentration'].values
 
-# ------------------ PLOT -----------------------
+# ------------------ Auto-Correlation ------------------
 # Path of Plots
 PATH_DIR_PLOTS = os.environ['Plot_dir']
 
@@ -537,10 +602,7 @@ if PATH_DIR_PLOTS == "":
     print("Error: set the environmental variables of Plot_dir")
     exit(-1)
 
-if not os.path.exists(PATH_DIR_PLOTS):
-  os.mkdir(PATH_DIR_PLOTS)
-
-PATH_DIR_PLOTS = joinpath(PATH_DIR_PLOTS, "EEA_plots_all_air_model_" + str(model_level_air_pollution) + "_pm_" + str(model_level_pm) + "_camsEU_" + str(list_numeric_model_cams_eu[idx_numeric_model_cams_eu]))
+PATH_DIR_PLOTS = joinpath(PATH_DIR_PLOTS, "Auto_corr_EEA_and_all_air_model_" + str(model_level_air_pollution) + "_pm_" + str(model_level_pm) + "_camsEU_" + str(list_numeric_model_cams_eu[idx_numeric_model_cams_eu]))
 
 if not os.path.exists(PATH_DIR_PLOTS):
     os.mkdir(PATH_DIR_PLOTS)
@@ -570,7 +632,7 @@ if not os.path.exists(PATH_DIR_PLOTS):
     os.mkdir(PATH_DIR_PLOTS)
 
 for cod_station in list_cod_stations:
-    
+
     region_cod_station = dict_code_stations[cod_station][2]
     PATH_DIR_PLOTS_current = joinpath(PATH_DIR_PLOTS, region_cod_station)
 
@@ -582,8 +644,72 @@ for cod_station in list_cod_stations:
     if not os.path.exists(PATH_DIR_PLOTS_current):
         os.mkdir(PATH_DIR_PLOTS_current)
 
-    plot(   
-            cod_station, air_poll_selected, dict_values_EEA_station[cod_station], \
-            dict_values_cams_global[cod_station], dict_values_geos_cf[cod_station], \
-            dict_values_cams_eu[cod_station], PATH_DIR_PLOTS_current
-        )
+    # Autocorrelation of EEA station
+    plt.figure(figsize=(10,6))
+    autocorrelation_plot(pd.Series(dict_values_EEA_station[cod_station]))
+    plt.title("Autocorrelation of " + air_poll_selected + " of EEA - " + str(cod_station))
+
+    if save_plot:
+        filename_fig = "Autocorrelation_EEA.png"
+        path_fig = joinpath(PATH_DIR_PLOTS_current, filename_fig)
+        plt.savefig(path_fig, dpi=300)
+    else:
+        plt.show()
+
+    # Autocorrelation of CAMS Europe
+    plt.figure(figsize=(10,6))
+    autocorrelation_plot(pd.Series(dict_values_cams_eu[cod_station]))
+    plt.title("Autocorrelation of " + air_poll_selected + " of CAMS Europe - " + str(cod_station))
+
+    if save_plot:
+        filename_fig = "Autocorrelation_CAMS_Europe.png"
+        path_fig = joinpath(PATH_DIR_PLOTS_current, filename_fig)
+        plt.savefig(path_fig, dpi=300)
+    else:
+        plt.show()
+
+    # Autocorrelation of GEOS CF
+    plt.figure(figsize=(10,6))
+    autocorrelation_plot(pd.Series(dict_values_geos_cf[cod_station]))
+    plt.title("Autocorrelation of " + air_poll_selected + " of GEOS CF - " + str(cod_station))
+
+    if save_plot:
+        filename_fig = "Autocorrelation_GEOS_CF.png"
+        path_fig = joinpath(PATH_DIR_PLOTS_current, filename_fig)
+        plt.savefig(path_fig, dpi=300)
+    else:
+        plt.show()
+
+    # Autocorrelation of CAMS Global
+    plt.figure(figsize=(10,6))
+    autocorrelation_plot(pd.Series(dict_values_cams_global[cod_station]))
+    plt.title("Autocorrelation of " + air_poll_selected + " of CAMS Global - " + str(cod_station))
+
+    if save_plot:
+        filename_fig = "Autocorrelation_CAMS_Global.png"
+        path_fig = joinpath(PATH_DIR_PLOTS_current, filename_fig)
+        plt.savefig(path_fig, dpi=300)
+    else:
+        plt.show()
+
+    # Autocorrelation of EEA and all models in one plot
+    list_all_station = [    
+                            [dict_values_EEA_station[cod_station], "EEA"],
+                            [dict_values_cams_eu[cod_station], "CAMS EU"],
+                            [dict_values_geos_cf[cod_station], "GEOS CF"],
+                            [dict_values_cams_global[cod_station], "CAMS Global"]
+                    ]
+
+    plt.figure(figsize=(10,6))
+    for i in range(len(list_all_station)):
+        autocorrelation_plot(pd.Series(list_all_station[i][0]), label = list_all_station[i][1])
+    
+    plt.title("Autocorrelation of EEA/CAMS EU/GEOS CF/CAMS Global - " + str(cod_station))
+    plt.legend()
+
+    if save_plot:
+        filename_fig = "Autocorrelation_EEA_and_all_models.png"
+        path_fig = joinpath(PATH_DIR_PLOTS_current, filename_fig)
+        plt.savefig(path_fig, dpi=300)
+    else:
+        plt.show() 
