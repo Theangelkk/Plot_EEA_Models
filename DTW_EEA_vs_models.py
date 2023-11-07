@@ -91,7 +91,7 @@ idx_numeric_model_cams_eu = list_numeric_model_cams_eu.index(args["cams_eu"])
 fixed_air_density = not bool(args["compute_air_density"])
 
 if args["delta_hours"] > 0:
-    delta_time_houes = int(args["delta_hours"])
+    delta_time_hours = int(args["delta_hours"])
 
 # -------------- EEA paths --------------
 path_main_dir_EEA = os.environ['EEA_data']
@@ -328,8 +328,8 @@ ds_cams_global = None
 ds_geos_cf = None
 
 diff_dates = end_date_year - start_date_year
-diff_dates_hours = int(diff_dates.total_seconds() / (60*60*delta_time_houes))
-delta = timedelta(hours=delta_time_houes)
+diff_dates_hours = int(diff_dates.total_seconds() / (60*60*delta_time_hours))
+delta = timedelta(hours=delta_time_hours)
 
 # Reading matainfo file about air pollutant of the country defined
 df_air_pol_metainfo = pd.read_table(path_file_air_pol_metainfo, delimiter=',', index_col=0)
@@ -406,14 +406,26 @@ for time in range(diff_dates_hours):
         # Loading CAMS Europe - GEOS CF - CAMS Global data sets
         if not_available_cams_eu == False:
             ds_current_date_cams_eu = ds_cams_eu.sel(time=current_date.isoformat())
-            cams_eu_delta_time = ds_current_date_cams_eu.sel(lat=lat_station, lon=lat_station, method='nearest')[air_poll_selected.lower()].values
+
+            if air_poll_selected == "PM2.5":
+                cams_eu_delta_time = ds_current_date_cams_eu.sel(lat=lat_station, lon=lat_station, method='nearest')["pm2p5"].values
+            else:
+                cams_eu_delta_time = ds_current_date_cams_eu.sel(lat=lat_station, lon=lat_station, method='nearest')[air_poll_selected.lower()].values
+            
             dict_values_cams_eu[cod_station].append(float(cams_eu_delta_time))
         else:
             ds_current_date_cams_eu = None
 
-        if (time*delta_time_houes) % time_res_cams_global == 0 and not_available_cams_global == False:
+        if (time*delta_time_hours) % time_res_cams_global == 0 and not_available_cams_global == False:
             ds_current_date_cams_global = ds_cams_global.sel(time=current_date.isoformat())
-            cams_global_delta_time = ds_current_date_cams_global.sel(latitude=lat_station, longitude=lon_station, method='nearest')[air_poll_selected.lower()].values
+
+            if air_poll_selected == "PM2.5":
+                cams_global_delta_time = ds_current_date_cams_global.sel(latitude=lat_station, longitude=lon_station, method='nearest')["pm2p5"].values
+            elif air_poll_selected == "O3":
+                cams_global_delta_time = ds_current_date_cams_global.sel(latitude=lat_station, longitude=lon_station, method='nearest')["go3"].values
+            else:
+                cams_global_delta_time = ds_current_date_cams_global.sel(latitude=lat_station, longitude=lon_station, method='nearest')[air_poll_selected.lower()].values
+            
             dict_values_cams_global[cod_station].append(float(cams_global_delta_time))
         else:
             ds_current_date_cams_global = None
@@ -421,7 +433,12 @@ for time in range(diff_dates_hours):
 
         if not_available_goes_cf == False:
             ds_current_date_geos_cf = ds_geos_cf.sel(datetime=current_date.isoformat())
-            geos_cf_delta_time = ds_current_date_geos_cf.sel(latitude=lat_station, longitude=lat_station, method='nearest')[air_poll_selected].values
+
+            if air_poll_selected == "PM2.5":
+                geos_cf_delta_time = ds_current_date_geos_cf.sel(latitude=lat_station, longitude=lat_station, method='nearest')[air_pollutant_pm25_geos_cf].values
+            else:
+                geos_cf_delta_time = ds_current_date_geos_cf.sel(latitude=lat_station, longitude=lat_station, method='nearest')[air_poll_selected].values
+            
             dict_values_geos_cf[cod_station].append(float(geos_cf_delta_time))
         else:
             ds_current_date_geos_cf = None
@@ -491,31 +508,40 @@ for cod_station in list_cod_stations:
 for cod_station in list_cod_stations:
 
     np_eea_station = np.array(dict_values_EEA_station[cod_station])
-    np_cams_eu = np.array(dict_values_cams_eu[cod_station])
-    np_geos_cf = np.array(dict_values_geos_cf[cod_station])
-    np_cams_global = np.array(dict_values_cams_global[cod_station])
+
+    if not_available_cams_eu == False:
+        np_cams_eu = np.array(dict_values_cams_eu[cod_station])
+    
+    if not_available_goes_cf == False:
+        np_geos_cf = np.array(dict_values_geos_cf[cod_station])
+    
+    if not_available_cams_global == False:
+        np_cams_global = np.array(dict_values_cams_global[cod_station])
 
     for i in range(len(list_windows_lenght)):
 
         window_lenght = list_windows_lenght[i]
 
         # -------------------- Compute DTW between EEA vs CAMS EU --------------------
-        distance_eea_cams_eu, paths_eea_cams_eu = dtw.warping_paths(np_eea_station, np_cams_eu, window=window_lenght)
+        if not_available_cams_eu == False:
+            distance_eea_cams_eu, paths_eea_cams_eu = dtw.warping_paths(np_eea_station, np_cams_eu, window=window_lenght)
 
-        # Defintion of best DTW path
-        best_path_eea_cams_eu = dtw.best_path(paths_eea_cams_eu)
+            # Defintion of best DTW path
+            best_path_eea_cams_eu = dtw.best_path(paths_eea_cams_eu)
 
         # -------------------- Compute DTW between EEA vs GEOS CF --------------------
-        distance_eea_geos_cf, paths_eea_geos_cf = dtw.warping_paths(np_eea_station, np_geos_cf, window=window_lenght)
+        if not_available_goes_cf == False:
+            distance_eea_geos_cf, paths_eea_geos_cf = dtw.warping_paths(np_eea_station, np_geos_cf, window=window_lenght)
 
-        # Defintion of best DTW path
-        best_path_eea_geos_cf = dtw.best_path(paths_eea_geos_cf)
+            # Defintion of best DTW path
+            best_path_eea_geos_cf = dtw.best_path(paths_eea_geos_cf)
 
         # -------------------- Compute DTW between EEA vs CAMS GLOBAL --------------------
-        distance_eea_cams_global, paths_eea_cams_global = dtw.warping_paths(np_eea_station, np_cams_global, window=window_lenght)
+        if not_available_cams_global == False:
+            distance_eea_cams_global, paths_eea_cams_global = dtw.warping_paths(np_eea_station, np_cams_global, window=window_lenght)
 
-        # Defintion of best DTW path
-        best_path_eea_cams_global = dtw.best_path(paths_eea_cams_global)
+            # Defintion of best DTW path
+            best_path_eea_cams_global = dtw.best_path(paths_eea_cams_global)
 
         # ------------------ PLOT -----------------------
         
@@ -536,26 +562,29 @@ for cod_station in list_cod_stations:
             os.mkdir(PATH_DIR_PLOTS_current)
 
         # Alignment Plot between two times series (EEA vs CAMS EU)
-        filename_path = joinpath(PATH_DIR_PLOTS_current, "EEA_CAMS_EU_warp.png")
-        dtwvis.plot_warping(np_eea_station, np_cams_eu, best_path_eea_cams_eu, filename=filename_path)
+        if not_available_cams_eu == False:
+            filename_path = joinpath(PATH_DIR_PLOTS_current, "EEA_CAMS_EU_warp.png")
+            dtwvis.plot_warping(np_eea_station, np_cams_eu, best_path_eea_cams_eu, filename=filename_path)
 
-        # Plot of best path computed
-        filename_path = joinpath(PATH_DIR_PLOTS_current, "EEA_CAMS_EU_best_warp.png")
-        dtwvis.plot_warpingpaths(np_eea_station, np_cams_eu, paths_eea_cams_eu, best_path_eea_cams_eu, filename=filename_path)
+            # Plot of best path computed
+            filename_path = joinpath(PATH_DIR_PLOTS_current, "EEA_CAMS_EU_best_warp.png")
+            dtwvis.plot_warpingpaths(np_eea_station, np_cams_eu, paths_eea_cams_eu, best_path_eea_cams_eu, filename=filename_path)
 
         # Alignment Plot between two times series (EEA vs GEOS CF)
-        filename_path = joinpath(PATH_DIR_PLOTS_current, "EEA_GEOS_CF_warp.png")
-        dtwvis.plot_warping(np_eea_station, np_geos_cf, best_path_eea_geos_cf, filename=filename_path)
+        if not_available_goes_cf == False:
+            filename_path = joinpath(PATH_DIR_PLOTS_current, "EEA_GEOS_CF_warp.png")
+            dtwvis.plot_warping(np_eea_station, np_geos_cf, best_path_eea_geos_cf, filename=filename_path)
 
-        # Plot of best path computed
-        filename_path = joinpath(PATH_DIR_PLOTS_current, "EEA_GEOS_CF_best_warp.png")
-        dtwvis.plot_warpingpaths(np_eea_station, np_geos_cf, paths_eea_geos_cf, best_path_eea_geos_cf, filename=filename_path)
+            # Plot of best path computed
+            filename_path = joinpath(PATH_DIR_PLOTS_current, "EEA_GEOS_CF_best_warp.png")
+            dtwvis.plot_warpingpaths(np_eea_station, np_geos_cf, paths_eea_geos_cf, best_path_eea_geos_cf, filename=filename_path)
         
         # Alignment Plot between two times series (EEA vs CAMS GLOBAL)
-        filename_path = joinpath(PATH_DIR_PLOTS_current, "EEA_CAMS_GLOBAL_warp.png")
-        dtwvis.plot_warping(np_eea_station, np_cams_global, best_path_eea_cams_global, filename=filename_path)
+        if not_available_cams_global == False:
+            filename_path = joinpath(PATH_DIR_PLOTS_current, "EEA_CAMS_GLOBAL_warp.png")
+            dtwvis.plot_warping(np_eea_station, np_cams_global, best_path_eea_cams_global, filename=filename_path)
 
-        # Plot of best path computed
-        filename_path = joinpath(PATH_DIR_PLOTS_current, "EEA_CAMS_GLOBAL_best_warp.png")
-        dtwvis.plot_warpingpaths(np_eea_station, np_cams_global, paths_eea_cams_global, best_path_eea_cams_global, filename=filename_path)
-        
+            # Plot of best path computed
+            filename_path = joinpath(PATH_DIR_PLOTS_current, "EEA_CAMS_GLOBAL_best_warp.png")
+            dtwvis.plot_warpingpaths(np_eea_station, np_cams_global, paths_eea_cams_global, best_path_eea_cams_global, filename=filename_path)
+            

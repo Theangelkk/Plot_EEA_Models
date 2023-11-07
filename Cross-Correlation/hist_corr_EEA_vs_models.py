@@ -91,7 +91,7 @@ idx_numeric_model_cams_eu = list_numeric_model_cams_eu.index(args["cams_eu"])
 fixed_air_density = not bool(args["compute_air_density"])
 
 if args["delta_hours"] > 0:
-    delta_time_houes = int(args["delta_hours"])
+    delta_time_hours = int(args["delta_hours"])
 
 # -------------- EEA paths --------------
 path_main_dir_EEA = os.environ['EEA_data']
@@ -325,6 +325,8 @@ def plot_hist_EEA(
                     list_corr_EEA_vs_cams_eu, air_pol_selected, PATH_DIR_PLOTS
     ):
 
+    global not_available_cams_eu, not_available_goes_cf, not_available_cams_global
+
     bins_range = np.arange(0.0, 1.0, 0.05).tolist()
 
     # Set up the axes and figure
@@ -333,57 +335,60 @@ def plot_hist_EEA(
     # ------------ PLOT EEA vs CAMS GLOBAL ------------
     ax_EEA_vs_cams_global = fig.add_subplot(311)
 
-    ax_EEA_vs_cams_global.hist(list_corr_EEA_vs_cams_global, bins = bins_range)
+    if not_available_cams_global == False:
+        ax_EEA_vs_cams_global.hist(list_corr_EEA_vs_cams_global, bins = bins_range)
 
-    if is_previous_elems: 
-        ax_EEA_vs_cams_global.set_title( air_pol_selected + " " + method_corr.upper() + \
-                                        " Correlation " + str(year) + \
-                                        " EEA vs CAMS GLOBAL " + str(cod_station) + \
-                                        " - WL: " + str(windows_lenght) + \
-                                        " - Previous")
-    else:
-        ax_EEA_vs_cams_global.set_title( air_pol_selected + " " + method_corr.upper() + \
-                                         " Correlation " + str(year) + \
-                                         " EEA vs CAMS GLOBAL " + str(cod_station) + \
-                                         " - WL: " + str(windows_lenght) + \
-                                         " - Centered")
+        if is_previous_elems: 
+            ax_EEA_vs_cams_global.set_title( air_pol_selected + " " + method_corr.upper() + \
+                                            " Correlation " + str(year) + \
+                                            " EEA vs CAMS GLOBAL " + str(cod_station) + \
+                                            " - WL: " + str(windows_lenght) + \
+                                            " - Previous")
+        else:
+            ax_EEA_vs_cams_global.set_title( air_pol_selected + " " + method_corr.upper() + \
+                                            " Correlation " + str(year) + \
+                                            " EEA vs CAMS GLOBAL " + str(cod_station) + \
+                                            " - WL: " + str(windows_lenght) + \
+                                            " - Centered")
 
 
     # ------------ PLOT EEA vs GEOS CF ------------
     ax_EEA_vs_geos_cf = fig.add_subplot(312)
 
-    ax_EEA_vs_geos_cf.hist(list_corr_EEA_vs_geos_cf, bins = bins_range)
+    if not_available_goes_cf == False:
+        ax_EEA_vs_geos_cf.hist(list_corr_EEA_vs_geos_cf, bins = bins_range)
 
-    if is_previous_elems: 
-        ax_EEA_vs_geos_cf.set_title( air_pol_selected + " " + method_corr.upper() + \
-                                        " Correlation " + str(year) + \
-                                        " EEA vs GEOS CF " + str(cod_station) + \
-                                        " - WL: " + str(windows_lenght) + \
-                                        " - Previous")
-    else:
-        ax_EEA_vs_geos_cf.set_title( air_pol_selected + " " + method_corr.upper() + \
-                                         " Correlation " + str(year) + \
-                                         " EEA vs GEOS CF " + str(cod_station) + \
-                                         " - WL: " + str(windows_lenght) + \
-                                         " - Centered")
+        if is_previous_elems: 
+            ax_EEA_vs_geos_cf.set_title( air_pol_selected + " " + method_corr.upper() + \
+                                            " Correlation " + str(year) + \
+                                            " EEA vs GEOS CF " + str(cod_station) + \
+                                            " - WL: " + str(windows_lenght) + \
+                                            " - Previous")
+        else:
+            ax_EEA_vs_geos_cf.set_title( air_pol_selected + " " + method_corr.upper() + \
+                                            " Correlation " + str(year) + \
+                                            " EEA vs GEOS CF " + str(cod_station) + \
+                                            " - WL: " + str(windows_lenght) + \
+                                            " - Centered")
 
     # ------------ PLOT EEA vs CAMS EUROPA ------------
     ax_EEA_vs_cams_eu = fig.add_subplot(313)
 
-    ax_EEA_vs_cams_eu.hist(list_corr_EEA_vs_cams_eu, bins = bins_range)
+    if not_available_cams_eu == False:
+        ax_EEA_vs_cams_eu.hist(list_corr_EEA_vs_cams_eu, bins = bins_range)
 
-    if is_previous_elems: 
-        ax_EEA_vs_cams_eu.set_title( air_pol_selected + " " + method_corr.upper() + \
-                                        " Correlation " + str(year) + \
-                                        " EEA vs CAMS EU " + str(cod_station) + \
-                                        " - WL: " + str(windows_lenght) + \
-                                        " - Previous")
-    else:
-        ax_EEA_vs_cams_eu.set_title( air_pol_selected + " " + method_corr.upper() + \
-                                         " Correlation " + str(year) + \
-                                         " EEA vs CAMS EU " + str(cod_station) + \
-                                         " - WL: " + str(windows_lenght) + \
-                                         " - Centered")
+        if is_previous_elems: 
+            ax_EEA_vs_cams_eu.set_title( air_pol_selected + " " + method_corr.upper() + \
+                                            " Correlation " + str(year) + \
+                                            " EEA vs CAMS EU " + str(cod_station) + \
+                                            " - WL: " + str(windows_lenght) + \
+                                            " - Previous")
+        else:
+            ax_EEA_vs_cams_eu.set_title( air_pol_selected + " " + method_corr.upper() + \
+                                            " Correlation " + str(year) + \
+                                            " EEA vs CAMS EU " + str(cod_station) + \
+                                            " - WL: " + str(windows_lenght) + \
+                                            " - Centered")
 
     if save_plot:
         if is_previous_elems: 
@@ -407,6 +412,8 @@ def plot_hist_models(
                     list_corr_geos_cf_vs_cams_global, air_pol_selected, PATH_DIR_PLOTS
     ):
 
+    global not_available_cams_eu, not_available_goes_cf, not_available_cams_global
+
     bins_range = np.arange(0.0, 1.0, 0.05).tolist()
 
     # Set up the axes and figure
@@ -415,57 +422,59 @@ def plot_hist_models(
     # ------------ PLOT CAMS EU vs GEOS CF ------------
     ax_cams_eu_vs_geos_cf = fig.add_subplot(311)
 
-    ax_cams_eu_vs_geos_cf.hist(list_corr_cams_eu_vs_geos_cf, bins = bins_range)
+    if not_available_cams_eu == False and not_available_goes_cf == False:
+        ax_cams_eu_vs_geos_cf.hist(list_corr_cams_eu_vs_geos_cf, bins = bins_range)
 
-    if is_previous_elems: 
-        ax_cams_eu_vs_geos_cf.set_title( air_pol_selected + " " + method_corr.upper() + \
-                                        " Correlation " + str(year) + \
-                                        " CAMS EU vs GEOS CF " + str(cod_station) + \
-                                        " - WL: " + str(windows_lenght) + \
-                                        " - Previous")
-    else:
-        ax_cams_eu_vs_geos_cf.set_title( air_pol_selected + " " + method_corr.upper() + \
-                                         " Correlation " + str(year) + \
-                                         " CAMS EU vs GEOS CF " + str(cod_station) + \
-                                         " - WL: " + str(windows_lenght) + \
-                                         " - Centered")
-
+        if is_previous_elems: 
+            ax_cams_eu_vs_geos_cf.set_title( air_pol_selected + " " + method_corr.upper() + \
+                                            " Correlation " + str(year) + \
+                                            " CAMS EU vs GEOS CF " + str(cod_station) + \
+                                            " - WL: " + str(windows_lenght) + \
+                                            " - Previous")
+        else:
+            ax_cams_eu_vs_geos_cf.set_title( air_pol_selected + " " + method_corr.upper() + \
+                                            " Correlation " + str(year) + \
+                                            " CAMS EU vs GEOS CF " + str(cod_station) + \
+                                            " - WL: " + str(windows_lenght) + \
+                                            " - Centered")
 
     # ------------ PLOT CAMS EU vs CAMS GLOBAL ------------
     ax_cams_eu_vs_cams_global = fig.add_subplot(312)
 
-    ax_cams_eu_vs_cams_global.hist(list_corr_cams_eu_vs_cams_global, bins = bins_range)
+    if not_available_cams_eu == False and not_available_cams_global == False:
+        ax_cams_eu_vs_cams_global.hist(list_corr_cams_eu_vs_cams_global, bins = bins_range)
 
-    if is_previous_elems: 
-        ax_cams_eu_vs_cams_global.set_title( air_pol_selected + " " + method_corr.upper() + \
-                                        " Correlation " + str(year) + \
-                                        " CAMS EU vs CAMS GLOBAL " + str(cod_station) + \
-                                        " - WL: " + str(windows_lenght) + \
-                                        " - Previous")
-    else:
-        ax_cams_eu_vs_cams_global.set_title( air_pol_selected + " " + method_corr.upper() + \
-                                         " Correlation " + str(year) + \
-                                         " CAMS EU vs CAMS GLOBAL " + str(cod_station) + \
-                                         " - WL: " + str(windows_lenght) + \
-                                         " - Centered")
+        if is_previous_elems: 
+            ax_cams_eu_vs_cams_global.set_title( air_pol_selected + " " + method_corr.upper() + \
+                                            " Correlation " + str(year) + \
+                                            " CAMS EU vs CAMS GLOBAL " + str(cod_station) + \
+                                            " - WL: " + str(windows_lenght) + \
+                                            " - Previous")
+        else:
+            ax_cams_eu_vs_cams_global.set_title( air_pol_selected + " " + method_corr.upper() + \
+                                            " Correlation " + str(year) + \
+                                            " CAMS EU vs CAMS GLOBAL " + str(cod_station) + \
+                                            " - WL: " + str(windows_lenght) + \
+                                            " - Centered")
 
-    # ------------ PLOT GEOS CF vs CAMS EUROPA ------------
+    # ------------ PLOT GEOS CF vs CAMS GLOBAL ------------
     ax_geos_cf_vs_cams_global = fig.add_subplot(313)
+    
+    if not_available_goes_cf == False and not_available_cams_global == False:
+        ax_geos_cf_vs_cams_global.hist(list_corr_geos_cf_vs_cams_global, bins = bins_range)
 
-    ax_geos_cf_vs_cams_global.hist(list_corr_geos_cf_vs_cams_global, bins = bins_range)
-
-    if is_previous_elems: 
-        ax_geos_cf_vs_cams_global.set_title( air_pol_selected + " " + method_corr.upper() + \
-                                        " Correlation " + str(year) + \
-                                        " GEOS CF vs CAMS GLOBAL " + str(cod_station) + \
-                                        " - WL: " + str(windows_lenght) + \
-                                        " - Previous")
-    else:
-        ax_geos_cf_vs_cams_global.set_title( air_pol_selected + " " + method_corr.upper() + \
-                                         " Correlation " + str(year) + \
-                                         " GEOS CF vs CAMS GLOBAL " + str(cod_station) + \
-                                         " - WL: " + str(windows_lenght) + \
-                                         " - Centered")
+        if is_previous_elems: 
+            ax_geos_cf_vs_cams_global.set_title( air_pol_selected + " " + method_corr.upper() + \
+                                            " Correlation " + str(year) + \
+                                            " GEOS CF vs CAMS GLOBAL " + str(cod_station) + \
+                                            " - WL: " + str(windows_lenght) + \
+                                            " - Previous")
+        else:
+            ax_geos_cf_vs_cams_global.set_title( air_pol_selected + " " + method_corr.upper() + \
+                                            " Correlation " + str(year) + \
+                                            " GEOS CF vs CAMS GLOBAL " + str(cod_station) + \
+                                            " - WL: " + str(windows_lenght) + \
+                                            " - Centered")
 
     if save_plot:
         if is_previous_elems: 
@@ -493,8 +502,8 @@ ds_cams_global = None
 ds_geos_cf = None
 
 diff_dates = end_date_year - start_date_year
-diff_dates_hours = int(diff_dates.total_seconds() / (60*60*delta_time_houes))
-delta = timedelta(hours=delta_time_houes)
+diff_dates_hours = int(diff_dates.total_seconds() / (60*60*delta_time_hours))
+delta = timedelta(hours=delta_time_hours)
 
 # Reading matainfo file about air pollutant of the country defined
 df_air_pol_metainfo = pd.read_table(path_file_air_pol_metainfo, delimiter=',', index_col=0)
@@ -570,14 +579,26 @@ for time in range(diff_dates_hours):
         # Loading CAMS Europe - GEOS CF - CAMS Global data sets
         if not_available_cams_eu == False:
             ds_current_date_cams_eu = ds_cams_eu.sel(time=current_date.isoformat())
-            cams_eu_delta_time = ds_current_date_cams_eu.sel(lat=lat_station, lon=lat_station, method='nearest')[air_poll_selected.lower()].values
+
+            if air_poll_selected == "PM2.5":
+                cams_eu_delta_time = ds_current_date_cams_eu.sel(lat=lat_station, lon=lat_station, method='nearest')["pm2p5"].values
+            else:
+                cams_eu_delta_time = ds_current_date_cams_eu.sel(lat=lat_station, lon=lat_station, method='nearest')[air_poll_selected.lower()].values
+            
             dict_values_cams_eu[cod_station].append(float(cams_eu_delta_time))
         else:
             ds_current_date_cams_eu = None
 
-        if (time*delta_time_houes) % time_res_cams_global == 0 and not_available_cams_global == False:
+        if (time*delta_time_hours) % time_res_cams_global == 0 and not_available_cams_global == False:
             ds_current_date_cams_global = ds_cams_global.sel(time=current_date.isoformat())
-            cams_global_delta_time = ds_current_date_cams_global.sel(latitude=lat_station, longitude=lon_station, method='nearest')[air_poll_selected.lower()].values
+
+            if air_poll_selected == "PM2.5":
+                cams_global_delta_time = ds_current_date_cams_global.sel(latitude=lat_station, longitude=lon_station, method='nearest')["pm2p5"].values
+            elif air_poll_selected == "O3":
+                cams_global_delta_time = ds_current_date_cams_global.sel(latitude=lat_station, longitude=lon_station, method='nearest')["go3"].values
+            else:
+                cams_global_delta_time = ds_current_date_cams_global.sel(latitude=lat_station, longitude=lon_station, method='nearest')[air_poll_selected.lower()].values
+            
             dict_values_cams_global[cod_station].append(float(cams_global_delta_time))
         else:
             ds_current_date_cams_global = None
@@ -585,7 +606,12 @@ for time in range(diff_dates_hours):
 
         if not_available_goes_cf == False:
             ds_current_date_geos_cf = ds_geos_cf.sel(datetime=current_date.isoformat())
-            geos_cf_delta_time = ds_current_date_geos_cf.sel(latitude=lat_station, longitude=lat_station, method='nearest')[air_poll_selected].values
+
+            if air_poll_selected == "PM2.5":
+                geos_cf_delta_time = ds_current_date_geos_cf.sel(latitude=lat_station, longitude=lat_station, method='nearest')[air_pollutant_pm25_geos_cf].values
+            else:
+                geos_cf_delta_time = ds_current_date_geos_cf.sel(latitude=lat_station, longitude=lat_station, method='nearest')[air_poll_selected].values
+            
             dict_values_geos_cf[cod_station].append(float(geos_cf_delta_time))
         else:
             ds_current_date_geos_cf = None
@@ -784,56 +810,86 @@ for cod_station in list_cod_stations:
 
         if is_previous_elems == False:
             sublists_EEA_station = split_centered_list_sublists(windows_lenght, dict_values_EEA_station[cod_station], 0.0)
-            sublists_cams_global = split_centered_list_sublists(windows_lenght, dict_values_cams_global[cod_station], 0.0)
-            sublists_geos_cf = split_centered_list_sublists(windows_lenght, dict_values_geos_cf[cod_station], 0.0)
-            sublists_cams_eu = split_centered_list_sublists(windows_lenght, dict_values_cams_eu[cod_station], 0.0)
+            
+            if not_available_cams_global == False:
+                sublists_cams_global = split_centered_list_sublists(windows_lenght, dict_values_cams_global[cod_station], 0.0)
+            
+            if not_available_goes_cf == False:
+                sublists_geos_cf = split_centered_list_sublists(windows_lenght, dict_values_geos_cf[cod_station], 0.0)
+            
+            if not_available_cams_eu == False:
+                sublists_cams_eu = split_centered_list_sublists(windows_lenght, dict_values_cams_eu[cod_station], 0.0)
         else:
             sublists_EEA_station = split_previous_list_sublists(windows_lenght, dict_values_EEA_station[cod_station], 0.0)
-            sublists_cams_global = split_previous_list_sublists(windows_lenght, dict_values_cams_global[cod_station], 0.0)
-            sublists_geos_cf = split_previous_list_sublists(windows_lenght, dict_values_geos_cf[cod_station], 0.0)
-            sublists_cams_eu = split_previous_list_sublists(windows_lenght, dict_values_cams_eu[cod_station], 0.0)
+            
+            if not_available_cams_global == False:
+                sublists_cams_global = split_previous_list_sublists(windows_lenght, dict_values_cams_global[cod_station], 0.0)
+            
+            if not_available_goes_cf == False:
+                sublists_geos_cf = split_previous_list_sublists(windows_lenght, dict_values_geos_cf[cod_station], 0.0)
+            
+            if not_available_cams_eu == False:
+                sublists_cams_eu = split_previous_list_sublists(windows_lenght, dict_values_cams_eu[cod_station], 0.0)
 
         # Compute correlation between EEA vs CAMS Global
-        list_corr_EEA_vs_cams_global = compute_correlation(    
+        list_corr_EEA_vs_cams_global = []
+
+        if not_available_cams_global == False:
+            list_corr_EEA_vs_cams_global = compute_correlation(    
+                                                                sublists_EEA_station, 
+                                                                sublists_cams_global, 
+                                                                method_corr
+                                                            )
+
+        # Compute correlation between EEA vs Geos CF
+        list_corr_EEA_vs_geos_cf = []
+
+        if not_available_goes_cf == False:
+            list_corr_EEA_vs_geos_cf = compute_correlation( 
                                                             sublists_EEA_station, 
-                                                            sublists_cams_global, 
+                                                            sublists_geos_cf, 
                                                             method_corr
                                                         )
 
-        # Compute correlation between EEA vs Geos CF
-        list_corr_EEA_vs_geos_cf = compute_correlation( 
-                                                        sublists_EEA_station, 
-                                                        sublists_geos_cf, 
-                                                        method_corr
-                                                    )
-
         # Compute correlation between EEA vs CAMS Europe
-        list_corr_EEA_vs_cams_eu = compute_correlation(    
-                                                        sublists_EEA_station, 
-                                                        sublists_cams_eu, 
-                                                        method_corr
-                                                    )
+        list_corr_EEA_vs_cams_eu = []
 
-        # Calcolo correlazione CAMS Europa vs GEOS CF
-        list_corr_cams_eu_vs_geos_cf = compute_correlation(    
+        if not_available_cams_eu == False:
+            list_corr_EEA_vs_cams_eu = compute_correlation(    
+                                                            sublists_EEA_station, 
                                                             sublists_cams_eu, 
-                                                            sublists_geos_cf, 
                                                             method_corr
-                                                    )
-        
-        # Compute correlation between CAMS Europe vs CAMS Global
-        list_corr_cams_eu_vs_cams_global = compute_correlation(    
+                                                        )
+
+        # Compute correlation between CAMS Europa vs GEOS CF
+        list_corr_cams_eu_vs_geos_cf = []
+
+        if not_available_cams_eu == False and not_available_goes_cf == False:
+            list_corr_cams_eu_vs_geos_cf = compute_correlation(    
                                                                 sublists_cams_eu, 
-                                                                sublists_cams_global, 
-                                                                method_corr
-                                                    )
-        
-        # Compute correlation between GEOS CF vs CAMS Global
-        list_corr_geos_cf_vs_cams_global = compute_correlation(    
                                                                 sublists_geos_cf, 
-                                                                sublists_cams_global, 
                                                                 method_corr
-                                                    )
+                                                        )
+            
+        # Compute correlation between CAMS Europe vs CAMS Global
+        list_corr_cams_eu_vs_cams_global = []
+
+        if not_available_cams_eu == False and not_available_cams_global == False:
+            list_corr_cams_eu_vs_cams_global = compute_correlation(    
+                                                                    sublists_cams_eu, 
+                                                                    sublists_cams_global, 
+                                                                    method_corr
+                                                        )
+            
+        # Compute correlation between GEOS CF vs CAMS Global
+        list_corr_geos_cf_vs_cams_global = []
+
+        if not_available_goes_cf == False and not_available_cams_global == False:
+            list_corr_geos_cf_vs_cams_global = compute_correlation(    
+                                                                    sublists_geos_cf, 
+                                                                    sublists_cams_global, 
+                                                                    method_corr
+                                                        )
         
         # ------------------ PLOT -----------------------
         region_cod_station = dict_code_stations[cod_station][2]

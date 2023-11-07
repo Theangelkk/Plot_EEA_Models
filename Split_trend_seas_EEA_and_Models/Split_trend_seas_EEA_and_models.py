@@ -36,6 +36,7 @@ def valid_date(d):
     t = 'T00:00'
     return valid_datetime(d + t)
 
+list_years = [2013 + idx for idx in range(0,2023-2013)]
 list_air_pollutant = ["CO", "NO2", "O3", "PM2.5", "PM10", "SO2"]
 list_numeric_model_cams_eu = [  "chimere", "ensemble", "EMEP", "LOTOS-EUROS", "MATCH", \
                                 "MINNI", "MOCAGE", "SILAM", "EURAD-IM", "DEHM", "GEM-AQ"]
@@ -47,8 +48,7 @@ parser.add_argument('-list_cod_stations', '--list_cod_stations', help='List of c
 parser.add_argument('-m_air_pol', '--m_air_pol', help='Model level for air pollution', type=int, required=True)
 parser.add_argument('-m_pm', '--m_pm', help='Model level for Particulate', type=int, required=True)
 parser.add_argument('-delta_h', '--delta_hours', type=int, required=True)
-parser.add_argument('-s_date', '--start_date', metavar='YYYY-MM-DD HH:MM:SS', type=valid_datetime, required=True)
-parser.add_argument('-e_date', '--end_date', metavar='YYYY-MM-DD HH:MM:SS', type=valid_datetime, required=True)
+parser.add_argument('-year', '--year', help='Year to consider (2013,2023)', type=int, choices=list_years, required=True)
 parser.add_argument('-cams_eu', '--cams_eu', help='chimere - ensemble - EMEP - LOTOS-EUROS - MATCH - MINNI - MOCAGE - SILAM - EURAD-IM - DEHM - GEM-AQ', \
                      choices=list_numeric_model_cams_eu, required=True)
 parser.add_argument('-compute_air_dens', '--compute_air_density', help='Compute with formula the air density', action='store_true')
@@ -56,13 +56,18 @@ parser.add_argument('-co_ug_m^3', '--co_ug_m^3', help='CO in ug/m^3', action='st
 parser.add_argument('-save_plot', '--save_plot', help='Save plot data', action='store_true')
 parser.add_argument('-decompose_trend_seas', '--decompose_trend_seas', help='Method for decomposing the time series analysed', \
                         choices=list_split_trend_seasonlity, required=True)
+parser.add_argument('-period_decom', '--period_decom', type=int, required=True)
 args = vars(parser.parse_args())
 
 air_poll_selected = args["air_pollutant"]
 list_cod_stations = args["list_cod_stations"]
-start_date_time_to_display = args["start_date"]
-end_date_time_to_display = args["end_date"]
+year_to_consider = args["year"]
 decompose_trend_seas = args["decompose_trend_seas"]
+period_decomp = int(args["period_decom"])
+
+if period_decomp <= 0:
+    print("Period decomposition must be greater then 0")
+    exit(-1)
 
 # If it asked the visualization of CO in ug/m^3
 co_in_ug_m3 = args["co_ug_m^3"]
@@ -402,16 +407,23 @@ def plot(
 
     plt.close()
 
-previous_date = start_date_time_to_display
-current_date = start_date_time_to_display
+start_date_year = datetime(year_to_consider, 1, 1, 0, 0)
+end_date_year = datetime(year_to_consider+1, 1, 1, 0, 0)
+
+previous_date = start_date_year
+current_date = start_date_year
 
 ds_cams_eu = None
 ds_cams_global = None
 ds_geos_cf = None
 
-diff_dates = end_date_time_to_display - start_date_time_to_display
+diff_dates = end_date_year - start_date_year
 diff_dates_hours = int(diff_dates.total_seconds() / (60*60*delta_time_hours))
 delta = timedelta(hours=delta_time_hours)
+
+if period_decomp*2 > diff_dates_hours:
+    print("The period decomposition must be contained two complete times in the interval time defined")
+    exit(-1)
 
 # Reading matainfo file about air pollutant of the country defined
 df_air_pol_metainfo = pd.read_table(path_file_air_pol_metainfo, delimiter=',', index_col=0)
@@ -438,7 +450,7 @@ dict_values_cams_global = {}
 for cod_station in list_cod_stations:
 
     df_station_date_current_year_values, lon_station, lat_station, region_station = \
-        load_EEA_station(   cod_station, current_date, end_date_time_to_display-delta, \
+        load_EEA_station(   cod_station, current_date, end_date_year-delta, \
                             df_air_pol_data, df_air_pol_metainfo
                         )
     
@@ -463,7 +475,7 @@ for time in range(diff_dates_hours):
 
         for cod_station in list_cod_stations:
             df_station_date_current_year_values, lon_station, lat_station, region_station = \
-                load_EEA_station(   cod_station, current_date, end_date_time_to_display-delta, \
+                load_EEA_station(   cod_station, current_date, end_date_year-delta, \
                                     df_air_pol_data, df_air_pol_metainfo
                             )
     
@@ -479,23 +491,35 @@ for time in range(diff_dates_hours):
     if previous_date.month != current_date.month:
         ds_cams_eu, ds_cams_global, ds_geos_cf = load_ds_datasets(current_date)
 
-    # Recuperiamo tutte le rilevazioni di tutte le stazioni definite
+    # For each stations
     for cod_station in list_cod_stations:
         
         lon_station = dict_code_stations[cod_station][0]
         lat_station = dict_code_stations[cod_station][1]
 
-        # Caricamento datasets
+        # Loading CAMS Europe - GEOS CF - CAMS Global data sets
         if not_available_cams_eu == False:
             ds_current_date_cams_eu = ds_cams_eu.sel(time=current_date.isoformat())
-            cams_eu_delta_time = ds_current_date_cams_eu.sel(lat=lat_station, lon=lat_station, method='nearest')[air_poll_selected.lower()].values
+
+            if air_poll_selected == "PM2.5":
+                cams_eu_delta_time = ds_current_date_cams_eu.sel(lat=lat_station, lon=lat_station, method='nearest')["pm2p5"].values
+            else:
+                cams_eu_delta_time = ds_current_date_cams_eu.sel(lat=lat_station, lon=lat_station, method='nearest')[air_poll_selected.lower()].values
+            
             dict_values_cams_eu[cod_station].append(float(cams_eu_delta_time))
         else:
             ds_current_date_cams_eu = None
 
         if (time*delta_time_hours) % time_res_cams_global == 0 and not_available_cams_global == False:
             ds_current_date_cams_global = ds_cams_global.sel(time=current_date.isoformat())
-            cams_global_delta_time = ds_current_date_cams_global.sel(latitude=lat_station, longitude=lon_station, method='nearest')[air_poll_selected.lower()].values
+
+            if air_poll_selected == "PM2.5":
+                cams_global_delta_time = ds_current_date_cams_global.sel(latitude=lat_station, longitude=lon_station, method='nearest')["pm2p5"].values
+            elif air_poll_selected == "O3":
+                cams_global_delta_time = ds_current_date_cams_global.sel(latitude=lat_station, longitude=lon_station, method='nearest')["go3"].values
+            else:
+                cams_global_delta_time = ds_current_date_cams_global.sel(latitude=lat_station, longitude=lon_station, method='nearest')[air_poll_selected.lower()].values
+            
             dict_values_cams_global[cod_station].append(float(cams_global_delta_time))
         else:
             ds_current_date_cams_global = None
@@ -503,7 +527,12 @@ for time in range(diff_dates_hours):
 
         if not_available_goes_cf == False:
             ds_current_date_geos_cf = ds_geos_cf.sel(datetime=current_date.isoformat())
-            geos_cf_delta_time = ds_current_date_geos_cf.sel(latitude=lat_station, longitude=lat_station, method='nearest')[air_poll_selected].values
+
+            if air_poll_selected == "PM2.5":
+                geos_cf_delta_time = ds_current_date_geos_cf.sel(latitude=lat_station, longitude=lat_station, method='nearest')[air_pollutant_pm25_geos_cf].values
+            else:
+                geos_cf_delta_time = ds_current_date_geos_cf.sel(latitude=lat_station, longitude=lat_station, method='nearest')[air_poll_selected].values
+            
             dict_values_geos_cf[cod_station].append(float(geos_cf_delta_time))
         else:
             ds_current_date_geos_cf = None
@@ -595,53 +624,61 @@ for cod_station in list_cod_stations:
         os.mkdir(PATH_DIR_PLOTS_current)
 
     # Decomposition of EEA station
-    plt.figure(figsize=(10,6))
-    seasonal_decompose(pd.Series(dict_values_EEA_station[cod_station]), model=method_decomposition)
-    plt.title(method_decomposition + " decomposition of " + air_poll_selected + " of EEA - " + str(cod_station))
+    decomp_EEA = seasonal_decompose(pd.Series(dict_values_EEA_station[cod_station]), model=method_decomposition, period=period_decomp)
+    
+    plt.rcParams.update({'figure.figsize': (16,12)})
+    decomp_EEA.plot().suptitle( method_decomposition + " decomposition period " + str(period_decomp) + \
+                                " of " + air_poll_selected + " of EEA - " + str(cod_station), fontsize=16)
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
 
     if save_plot:
-        filename_fig = method_decomposition + "_decomp_EEA.png"
+        filename_fig = method_decomposition + "_decomp_period_" + str(period_decomp) + "_EEA.png"
         path_fig = joinpath(PATH_DIR_PLOTS_current, filename_fig)
         plt.savefig(path_fig, dpi=300)
     else:
         plt.show()
 
     # Decomposition of CAMS Europe
-    plt.figure(figsize=(10,6))
-    seasonal_decompose(pd.Series(dict_values_cams_eu[cod_station]), model=method_decomposition)
-    plt.title(method_decomposition + " decomposition of " + air_poll_selected + " of CAMS Europe - " + str(cod_station))
-    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    if not_available_cams_eu == False:
+        decomp_cams_eu = seasonal_decompose(pd.Series(dict_values_cams_eu[cod_station]), model=method_decomposition, period=period_decomp)
+        plt.rcParams.update({'figure.figsize': (16,12)})
+        decomp_cams_eu.plot().suptitle( method_decomposition + " decomposition period " + str(period_decomp) + \
+                                        " of " + air_poll_selected + " of CAMS Europe - " + str(cod_station),  fontsize=16)
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
 
-    if save_plot:
-        filename_fig = method_decomposition + "_decomp_CAMS_Europe.png"
-        path_fig = joinpath(PATH_DIR_PLOTS_current, filename_fig)
-        plt.savefig(path_fig, dpi=300)
-    else:
-        plt.show()
+        if save_plot:
+            filename_fig = method_decomposition + "_decomp_period_" + str(period_decomp) + "_CAMS_Europe.png"
+            path_fig = joinpath(PATH_DIR_PLOTS_current, filename_fig)
+            plt.savefig(path_fig, dpi=300)
+        else:
+            plt.show()
 
     # Decomposition of GEOS CF
-    plt.figure(figsize=(10,6))
-    seasonal_decompose(pd.Series(dict_values_geos_cf[cod_station]), model=method_decomposition)
-    plt.title(method_decomposition + " decomposition of " + air_poll_selected + " of GEOS CF - " + str(cod_station))
-    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    if not_available_goes_cf == False:
+        decomp_geos_cf = seasonal_decompose(pd.Series(dict_values_geos_cf[cod_station]), model=method_decomposition, period=period_decomp)
+        plt.rcParams.update({'figure.figsize': (16,12)})
+        decomp_cams_eu.plot().suptitle( method_decomposition + " decomposition period " + str(period_decomp) + \
+                                        " of " + air_poll_selected + " of GEOS CF - " + str(cod_station), fontsize=16)
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
 
-    if save_plot:
-        filename_fig = method_decomposition + "_decomp_GEOS_CF.png"
-        path_fig = joinpath(PATH_DIR_PLOTS_current, filename_fig)
-        plt.savefig(path_fig, dpi=300)
-    else:
-        plt.show()
+        if save_plot:
+            filename_fig = method_decomposition + "_decomp_period_" + str(period_decomp) + "_GEOS_CF.png"
+            path_fig = joinpath(PATH_DIR_PLOTS_current, filename_fig)
+            plt.savefig(path_fig, dpi=300)
+        else:
+            plt.show()
 
     # Decomposition of CAMS Global
-    plt.figure(figsize=(10,6))
-    seasonal_decompose(pd.Series(dict_values_cams_global[cod_station]), model=method_decomposition)
-    plt.title(method_decomposition + " decomposition of " + air_poll_selected + " of CAMS Global - " + str(cod_station))
-    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    if not_available_cams_global == False:
+        decomp_cams_global = seasonal_decompose(pd.Series(dict_values_cams_global[cod_station]), model=method_decomposition, period=period_decomp)
+        plt.rcParams.update({'figure.figsize': (16,12)})
+        decomp_cams_global.plot().suptitle( method_decomposition + " decomposition period " + str(period_decomp) + \
+                                        " of " + air_poll_selected + " of CAMS Global - " + str(cod_station), fontsize=16)
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
 
-    if save_plot:
-        filename_fig = method_decomposition + "_decomp_CAMS_Global.png"
-        path_fig = joinpath(PATH_DIR_PLOTS_current, filename_fig)
-        plt.savefig(path_fig, dpi=300)
-    else:
-        plt.show()
+        if save_plot:
+            filename_fig = method_decomposition + "_decomp_period_" + str(period_decomp) + "_CAMS_Global.png"
+            path_fig = joinpath(PATH_DIR_PLOTS_current, filename_fig)
+            plt.savefig(path_fig, dpi=300)
+        else:
+            plt.show()

@@ -72,7 +72,7 @@ idx_numeric_model_cams_eu = list_numeric_model_cams_eu.index(args["cams_eu"])
 fixed_air_density = not bool(args["compute_air_density"])
 
 if args["delta_hours"] > 0:
-    delta_time_houes = int(args["delta_hours"])
+    delta_time_hours = int(args["delta_hours"])
 
 # -------------- EEA paths --------------
 path_main_dir_EEA = os.environ['EEA_data']
@@ -473,8 +473,8 @@ ds_cams_global = None
 ds_geos_cf = None
 
 diff_dates = end_date_year - start_date_year
-diff_dates_hours = int(diff_dates.total_seconds() / (60*60*delta_time_houes))
-delta = timedelta(hours=delta_time_houes)
+diff_dates_hours = int(diff_dates.total_seconds() / (60*60*delta_time_hours))
+delta = timedelta(hours=delta_time_hours)
 
 # Reading matainfo file about air pollutant of the country defined
 df_air_pol_metainfo = pd.read_table(path_file_air_pol_metainfo, delimiter=',', index_col=0)
@@ -550,14 +550,26 @@ for time in range(diff_dates_hours):
         # Loading CAMS Europe - GEOS CF - CAMS Global data sets
         if not_available_cams_eu == False:
             ds_current_date_cams_eu = ds_cams_eu.sel(time=current_date.isoformat())
-            cams_eu_delta_time = ds_current_date_cams_eu.sel(lat=lat_station, lon=lat_station, method='nearest')[air_poll_selected.lower()].values
+
+            if air_poll_selected == "PM2.5":
+                cams_eu_delta_time = ds_current_date_cams_eu.sel(lat=lat_station, lon=lat_station, method='nearest')["pm2p5"].values
+            else:
+                cams_eu_delta_time = ds_current_date_cams_eu.sel(lat=lat_station, lon=lat_station, method='nearest')[air_poll_selected.lower()].values
+            
             dict_values_cams_eu[cod_station].append(float(cams_eu_delta_time))
         else:
             ds_current_date_cams_eu = None
 
-        if (time*delta_time_houes) % time_res_cams_global == 0 and not_available_cams_global == False:
+        if (time*delta_time_hours) % time_res_cams_global == 0 and not_available_cams_global == False:
             ds_current_date_cams_global = ds_cams_global.sel(time=current_date.isoformat())
-            cams_global_delta_time = ds_current_date_cams_global.sel(latitude=lat_station, longitude=lon_station, method='nearest')[air_poll_selected.lower()].values
+
+            if air_poll_selected == "PM2.5":
+                cams_global_delta_time = ds_current_date_cams_global.sel(latitude=lat_station, longitude=lon_station, method='nearest')["pm2p5"].values
+            elif air_poll_selected == "O3":
+                cams_global_delta_time = ds_current_date_cams_global.sel(latitude=lat_station, longitude=lon_station, method='nearest')["go3"].values
+            else:
+                cams_global_delta_time = ds_current_date_cams_global.sel(latitude=lat_station, longitude=lon_station, method='nearest')[air_poll_selected.lower()].values
+            
             dict_values_cams_global[cod_station].append(float(cams_global_delta_time))
         else:
             ds_current_date_cams_global = None
@@ -565,7 +577,12 @@ for time in range(diff_dates_hours):
 
         if not_available_goes_cf == False:
             ds_current_date_geos_cf = ds_geos_cf.sel(datetime=current_date.isoformat())
-            geos_cf_delta_time = ds_current_date_geos_cf.sel(latitude=lat_station, longitude=lat_station, method='nearest')[air_poll_selected].values
+
+            if air_poll_selected == "PM2.5":
+                geos_cf_delta_time = ds_current_date_geos_cf.sel(latitude=lat_station, longitude=lat_station, method='nearest')[air_pollutant_pm25_geos_cf].values
+            else:
+                geos_cf_delta_time = ds_current_date_geos_cf.sel(latitude=lat_station, longitude=lat_station, method='nearest')[air_poll_selected].values
+            
             dict_values_geos_cf[cod_station].append(float(geos_cf_delta_time))
         else:
             ds_current_date_geos_cf = None
@@ -644,6 +661,8 @@ for cod_station in list_cod_stations:
     if not os.path.exists(PATH_DIR_PLOTS_current):
         os.mkdir(PATH_DIR_PLOTS_current)
 
+    list_all_station = []
+
     # Autocorrelation of EEA station
     plt.figure(figsize=(10,6))
     autocorrelation_plot(pd.Series(dict_values_EEA_station[cod_station]))
@@ -656,50 +675,54 @@ for cod_station in list_cod_stations:
     else:
         plt.show()
 
-    # Autocorrelation of CAMS Europe
-    plt.figure(figsize=(10,6))
-    autocorrelation_plot(pd.Series(dict_values_cams_eu[cod_station]))
-    plt.title("Autocorrelation of " + air_poll_selected + " of CAMS Europe - " + str(cod_station))
+    list_all_station.append([dict_values_EEA_station[cod_station], "EEA"])
 
-    if save_plot:
-        filename_fig = "Autocorrelation_CAMS_Europe.png"
-        path_fig = joinpath(PATH_DIR_PLOTS_current, filename_fig)
-        plt.savefig(path_fig, dpi=300)
-    else:
-        plt.show()
+    # Autocorrelation of CAMS Europe
+    if not_available_cams_eu == False:
+        plt.figure(figsize=(10,6))
+        autocorrelation_plot(pd.Series(dict_values_cams_eu[cod_station]))
+        plt.title("Autocorrelation of " + air_poll_selected + " of CAMS Europe - " + str(cod_station))
+
+        if save_plot:
+            filename_fig = "Autocorrelation_CAMS_Europe.png"
+            path_fig = joinpath(PATH_DIR_PLOTS_current, filename_fig)
+            plt.savefig(path_fig, dpi=300)
+        else:
+            plt.show()
+
+        list_all_station.append([dict_values_cams_eu[cod_station], "CAMS EU"])
 
     # Autocorrelation of GEOS CF
-    plt.figure(figsize=(10,6))
-    autocorrelation_plot(pd.Series(dict_values_geos_cf[cod_station]))
-    plt.title("Autocorrelation of " + air_poll_selected + " of GEOS CF - " + str(cod_station))
+    if not_available_goes_cf == False:
+        plt.figure(figsize=(10,6))
+        autocorrelation_plot(pd.Series(dict_values_geos_cf[cod_station]))
+        plt.title("Autocorrelation of " + air_poll_selected + " of GEOS CF - " + str(cod_station))
 
-    if save_plot:
-        filename_fig = "Autocorrelation_GEOS_CF.png"
-        path_fig = joinpath(PATH_DIR_PLOTS_current, filename_fig)
-        plt.savefig(path_fig, dpi=300)
-    else:
-        plt.show()
+        if save_plot:
+            filename_fig = "Autocorrelation_GEOS_CF.png"
+            path_fig = joinpath(PATH_DIR_PLOTS_current, filename_fig)
+            plt.savefig(path_fig, dpi=300)
+        else:
+            plt.show()
+
+        list_all_station.append([dict_values_geos_cf[cod_station], "GEOS CF"])
 
     # Autocorrelation of CAMS Global
-    plt.figure(figsize=(10,6))
-    autocorrelation_plot(pd.Series(dict_values_cams_global[cod_station]))
-    plt.title("Autocorrelation of " + air_poll_selected + " of CAMS Global - " + str(cod_station))
+    if not_available_cams_global == False:
+        plt.figure(figsize=(10,6))
+        autocorrelation_plot(pd.Series(dict_values_cams_global[cod_station]))
+        plt.title("Autocorrelation of " + air_poll_selected + " of CAMS Global - " + str(cod_station))
 
-    if save_plot:
-        filename_fig = "Autocorrelation_CAMS_Global.png"
-        path_fig = joinpath(PATH_DIR_PLOTS_current, filename_fig)
-        plt.savefig(path_fig, dpi=300)
-    else:
-        plt.show()
+        if save_plot:
+            filename_fig = "Autocorrelation_CAMS_Global.png"
+            path_fig = joinpath(PATH_DIR_PLOTS_current, filename_fig)
+            plt.savefig(path_fig, dpi=300)
+        else:
+            plt.show()
+        
+        list_all_station.append([dict_values_cams_global[cod_station], "CAMS Global"])
 
     # Autocorrelation of EEA and all models in one plot
-    list_all_station = [    
-                            [dict_values_EEA_station[cod_station], "EEA"],
-                            [dict_values_cams_eu[cod_station], "CAMS EU"],
-                            [dict_values_geos_cf[cod_station], "GEOS CF"],
-                            [dict_values_cams_global[cod_station], "CAMS Global"]
-                    ]
-
     plt.figure(figsize=(10,6))
     for i in range(len(list_all_station)):
         autocorrelation_plot(pd.Series(list_all_station[i][0]), label = list_all_station[i][1])

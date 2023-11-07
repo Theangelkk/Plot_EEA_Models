@@ -83,7 +83,7 @@ end_date_time_to_display = args["end_date"]
 co_in_ug_m3 = args["co_ug_m^3"]
 
 if args["delta_hours"] > 0:
-    delta_time_houes = int(args["delta_hours"])
+    delta_time_hours = int(args["delta_hours"])
 
 # Order --> https://scikit-image.org/docs/dev/api/skimage.transform.html#skimage.transform.warp
 # 0: Nearest-neighboor
@@ -505,8 +505,8 @@ list_idx_lat = []
 list_idx_lon = []
 
 diff_dates = end_date_time_to_display - start_date_time_to_display
-diff_dates_hours = int(diff_dates.total_seconds() / (60*60*delta_time_houes))
-delta = timedelta(hours=delta_time_houes)
+diff_dates_hours = int(diff_dates.total_seconds() / (60*60*delta_time_hours))
+delta = timedelta(hours=delta_time_hours)
 
 ds_cams_eu, ds_cams_global, ds_geos_cf = load_ds_datasets(current_date)
 
@@ -532,7 +532,7 @@ for time in range(diff_dates_hours):
     else:
         ds_current_date_cams_eu = None
 
-    if (time*delta_time_houes) % time_res_cams_global == 0 and not_available_cams_global == False:
+    if (time*delta_time_hours) % time_res_cams_global == 0 and not_available_cams_global == False:
         ds_current_date_cams_global = ds_cams_global.sel(time=current_date.isoformat())
     else:
         ds_current_date_cams_global = None

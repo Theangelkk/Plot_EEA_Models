@@ -349,7 +349,8 @@ def plot(
             PATH_DIR_PLOTS, start_time, end_time
         ):
 
-    global  delta, co_in_ug_m3, save_plot, dict_limit_air_pollutants
+    global  delta, co_in_ug_m3, save_plot, dict_limit_air_pollutants, \
+            not_available_cams_eu, not_available_goes_cf, not_available_cams_global
 
     # Set up the axes and figure
     fig, ax = plt.subplots()
@@ -359,9 +360,15 @@ def plot(
                         )
 
     ax.plot(dates, list_values_EEA_station, label="EEA", alpha=0.75, linewidth=3)
-    ax.plot(dates, list_cams_global, label="CAMS GLOBAL",  alpha=1.0, linewidth=1)
-    ax.plot(dates, list_values_geos_cf, label="GEOS CF",  alpha=1.0, linewidth=1)
-    ax.plot(dates, list_values_cams_eu, label="CAMS EU", alpha=1.0, linewidth=1)
+    
+    if not_available_cams_eu == False:
+        ax.plot(dates, list_cams_global, label="CAMS GLOBAL",  alpha=1.0, linewidth=1)
+    
+    if not_available_goes_cf == False:
+        ax.plot(dates, list_values_geos_cf, label="GEOS CF",  alpha=1.0, linewidth=1)
+    
+    if not_available_cams_global == False:
+        ax.plot(dates, list_values_cams_eu, label="CAMS EU", alpha=1.0, linewidth=1)
 
     ax.axhline( y=dict_limit_air_pollutants[air_pol_selected],
                 color='r', linestyle='dotted', label= air_pol_selected + " limit")
@@ -476,23 +483,35 @@ for time in range(diff_dates_hours):
     if previous_date.month != current_date.month:
         ds_cams_eu, ds_cams_global, ds_geos_cf = load_ds_datasets(current_date)
 
-    # Recuperiamo tutte le rilevazioni di tutte le stazioni definite
+    # For each stations
     for cod_station in list_cod_stations:
         
         lon_station = dict_code_stations[cod_station][0]
         lat_station = dict_code_stations[cod_station][1]
 
-        # Caricamento datasets
+        # Loading CAMS Europe - GEOS CF - CAMS Global data sets
         if not_available_cams_eu == False:
             ds_current_date_cams_eu = ds_cams_eu.sel(time=current_date.isoformat())
-            cams_eu_delta_time = ds_current_date_cams_eu.sel(lat=lat_station, lon=lat_station, method='nearest')[air_poll_selected.lower()].values
+
+            if air_poll_selected == "PM2.5":
+                cams_eu_delta_time = ds_current_date_cams_eu.sel(lat=lat_station, lon=lat_station, method='nearest')["pm2p5"].values
+            else:
+                cams_eu_delta_time = ds_current_date_cams_eu.sel(lat=lat_station, lon=lat_station, method='nearest')[air_poll_selected.lower()].values
+            
             dict_values_cams_eu[cod_station].append(float(cams_eu_delta_time))
         else:
             ds_current_date_cams_eu = None
 
         if (time*delta_time_hours) % time_res_cams_global == 0 and not_available_cams_global == False:
             ds_current_date_cams_global = ds_cams_global.sel(time=current_date.isoformat())
-            cams_global_delta_time = ds_current_date_cams_global.sel(latitude=lat_station, longitude=lon_station, method='nearest')[air_poll_selected.lower()].values
+
+            if air_poll_selected == "PM2.5":
+                cams_global_delta_time = ds_current_date_cams_global.sel(latitude=lat_station, longitude=lon_station, method='nearest')["pm2p5"].values
+            elif air_poll_selected == "O3":
+                cams_global_delta_time = ds_current_date_cams_global.sel(latitude=lat_station, longitude=lon_station, method='nearest')["go3"].values
+            else:
+                cams_global_delta_time = ds_current_date_cams_global.sel(latitude=lat_station, longitude=lon_station, method='nearest')[air_poll_selected.lower()].values
+            
             dict_values_cams_global[cod_station].append(float(cams_global_delta_time))
         else:
             ds_current_date_cams_global = None
@@ -500,7 +519,12 @@ for time in range(diff_dates_hours):
 
         if not_available_goes_cf == False:
             ds_current_date_geos_cf = ds_geos_cf.sel(datetime=current_date.isoformat())
-            geos_cf_delta_time = ds_current_date_geos_cf.sel(latitude=lat_station, longitude=lat_station, method='nearest')[air_poll_selected].values
+
+            if air_poll_selected == "PM2.5":
+                geos_cf_delta_time = ds_current_date_geos_cf.sel(latitude=lat_station, longitude=lat_station, method='nearest')[air_pollutant_pm25_geos_cf].values
+            else:
+                geos_cf_delta_time = ds_current_date_geos_cf.sel(latitude=lat_station, longitude=lat_station, method='nearest')[air_poll_selected].values
+            
             dict_values_geos_cf[cod_station].append(float(geos_cf_delta_time))
         else:
             ds_current_date_geos_cf = None
@@ -615,14 +639,23 @@ for cod_station in list_cod_stations:
             current_dict_values_EEA_station = \
                         dict_values_EEA_station[cod_station][idx_dict : idx_end]
 
-            current_dict_values_cams_eu = \
-                        dict_values_cams_eu[cod_station][idx_dict : idx_end]
-            
-            current_dict_values_geos_cf = \
-                        dict_values_geos_cf[cod_station][idx_dict : idx_end]
+            current_dict_values_cams_eu = []
 
-            current_dict_values_cams_global = \
-                        dict_values_cams_global[cod_station][idx_dict : idx_end]
+            if not_available_cams_eu == False:
+                current_dict_values_cams_eu = \
+                            dict_values_cams_eu[cod_station][idx_dict : idx_end]
+            
+            current_dict_values_geos_cf = []
+
+            if not_available_goes_cf == False:
+                current_dict_values_geos_cf = \
+                            dict_values_geos_cf[cod_station][idx_dict : idx_end]
+
+            current_dict_values_cams_global = []
+
+            if not_available_cams_global == False:
+                current_dict_values_cams_global = \
+                            dict_values_cams_global[cod_station][idx_dict : idx_end]
 
             plot(   
                     cod_station, air_poll_selected, current_dict_values_EEA_station, \
