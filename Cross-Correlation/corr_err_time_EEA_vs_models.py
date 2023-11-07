@@ -44,6 +44,7 @@ parser.add_argument('-list_window_lenght', '--list_window_lenght', help='List of
 parser.add_argument('-previous_elems', '--previous_elems', help='Subseries with previous samples', action='store_true')
 parser.add_argument('-method_corr', '--method_corr', help='Method for computing correlation [pearson, kendall, spearman]', default='pearson', choices=list_methods_of_corr)
 parser.add_argument('-save_plot', '--save_plot', help='Save plot data', action='store_true')
+parser.add_argument('-split_days_plot', '--split_days_plot', help='How many days to visualize in one plot', type=int, required=True)
 parser.add_argument('-no_overlap', '--no_overlap', help='No overlap window lenght', action='store_true')
 args = vars(parser.parse_args())
 
@@ -52,6 +53,7 @@ list_cod_stations = args["list_cod_stations"]
 year_to_consider = args["year"]
 list_windows_lenght = args["list_window_lenght"]
 method_corr = args["method_corr"]
+split_days_plot = int(args["split_days_plot"])
 
 # If it is necessary to split the time series considering the
 # previous elements of i-th sample.
@@ -323,11 +325,11 @@ def plot_corr_EEA(
                     cod_station, year, windows_lenght, \
                     method_corr, is_previous_elems, \
                     list_corr_EEA_vs_cams_global, list_corr_EEA_vs_geos_cf, \
-                    list_corr_EEA_vs_cams_eu, air_pol_selected, PATH_DIR_PLOTS
+                    list_corr_EEA_vs_cams_eu, air_pol_selected, PATH_DIR_PLOTS, \
+                    start_date, end_date
     ):
 
-    global  no_overlap, start_date_year, end_date_year, delta, \
-            not_available_cams_eu, not_available_goes_cf, not_available_cams_global
+    global  no_overlap, delta, not_available_cams_eu, not_available_goes_cf, not_available_cams_global
 
     if is_previous_elems == False:
         if no_overlap:
@@ -340,26 +342,26 @@ def plot_corr_EEA(
         else:
             delta_shift = delta
 
-    dates = mdates.drange(start_date_year, end_date_year, delta_shift)
+    dates = mdates.drange(start_date, end_date, delta_shift)[:len(list_corr_EEA_vs_cams_global)]
 
-    # Set up the axes and figure
-    fig = plt.figure()
+    # Set up the axes and figure --> Default figsize (width: 6.4, height: 4.8)
+    fig = plt.figure(figsize=(15,9))
 
     # ------------ PLOT EEA vs CAMS GLOBAL ------------
     ax_EEA_vs_cams_global = fig.add_subplot(311)
     
     if not_available_cams_global == False:
-        ax_EEA_vs_cams_global.plot(dates, list_corr_EEA_vs_cams_global, "-o", label="Corr EEA - CAMS Global")
+        ax_EEA_vs_cams_global.plot(dates, list_corr_EEA_vs_cams_global, "-", label="Corr EEA - CAMS Global", linewidth=1)
 
         if is_previous_elems: 
             ax_EEA_vs_cams_global.set_title( air_pol_selected + " " + method_corr.upper() + \
-                                            " Correlation " + str(year) + \
+                                            " Correlation " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') + \
                                             " EEA vs CAMS GLOBAL " + str(cod_station) + \
                                             " - WL: " + str(windows_lenght) + \
                                             " - Previous")
         else:
             ax_EEA_vs_cams_global.set_title( air_pol_selected + " " + method_corr.upper() + \
-                                            " Correlation " + str(year) + \
+                                            " Correlation " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d')+ \
                                             " EEA vs CAMS GLOBAL " + str(cod_station) + \
                                             " - WL: " + str(windows_lenght) + \
                                             " - Centered")
@@ -375,17 +377,17 @@ def plot_corr_EEA(
     ax_EEA_vs_geos_cf = fig.add_subplot(312)
 
     if not_available_goes_cf == False:
-        ax_EEA_vs_geos_cf.plot(dates, list_corr_EEA_vs_geos_cf, "-o", label="Corr EEA - GEOS CF")
+        ax_EEA_vs_geos_cf.plot(dates, list_corr_EEA_vs_geos_cf, "-", label="Corr EEA - GEOS CF", linewidth=1)
 
         if is_previous_elems: 
             ax_EEA_vs_geos_cf.set_title( air_pol_selected + " " + method_corr.upper() + \
-                                            " Correlation " + str(year) + \
+                                            " Correlation " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') + \
                                             " EEA vs GEOS CF " + str(cod_station) + \
                                             " - WL: " + str(windows_lenght) + \
                                             " - Previous")
         else:
             ax_EEA_vs_geos_cf.set_title( air_pol_selected + " " + method_corr.upper() + \
-                                            " Correlation " + str(year) + \
+                                            " Correlation " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') + \
                                             " EEA vs GEOS CF " + str(cod_station) + \
                                             " - WL: " + str(windows_lenght) + \
                                             " - Centered")
@@ -401,17 +403,17 @@ def plot_corr_EEA(
     ax_EEA_vs_cams_eu = fig.add_subplot(313)
 
     if not_available_cams_eu == False:
-        ax_EEA_vs_cams_eu.plot(dates, list_corr_EEA_vs_cams_eu, "-o", label="Corr EEA - CAMS Europe")
+        ax_EEA_vs_cams_eu.plot(dates, list_corr_EEA_vs_cams_eu, "-", label="Corr EEA - CAMS Europe", linewidth=1)
 
         if is_previous_elems: 
             ax_EEA_vs_cams_eu.set_title( air_pol_selected + " " + method_corr.upper() + \
-                                            " Correlation " + str(year) + \
+                                            " Correlation " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') + \
                                             " EEA vs CAMS EU " + str(cod_station) + \
                                             " - WL: " + str(windows_lenght) + \
                                             " - Previous")
         else:
             ax_EEA_vs_cams_eu.set_title( air_pol_selected + " " + method_corr.upper() + \
-                                            " Correlation " + str(year) + \
+                                            " Correlation " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') + \
                                             " EEA vs CAMS EU " + str(cod_station) + \
                                             " - WL: " + str(windows_lenght) + \
                                             " - Centered")
@@ -430,10 +432,10 @@ def plot_corr_EEA(
 
     if save_plot:
         if is_previous_elems: 
-            filename_fig =  "Corr_" + str(year) + "_EEA_" + method_corr.upper() + "_WL_" + str(windows_lenght) + \
+            filename_fig =  "Corr_EEA_" + start_date.strftime('%Y-%m-%d') + "_" + end_date.strftime('%Y-%m-%d') + method_corr.upper() + \
                             "_previous.png"
         else:
-            filename_fig =  "Corr_" + str(year) + "_EEA_" + method_corr.upper() + "_WL_" + str(windows_lenght) + \
+            filename_fig =  "Corr_EEA_" + start_date.strftime('%Y-%m-%d') + "_" + end_date.strftime('%Y-%m-%d') + method_corr.upper() + \
                             "_centered.png"
 
         path_fig = joinpath(PATH_DIR_PLOTS, filename_fig)
@@ -447,11 +449,11 @@ def plot_corr_models(
                         cod_station, year, windows_lenght, \
                         method_corr, is_previous_elems, \
                         list_corr_cams_eu_vs_geos_cf, list_corr_cams_eu_vs_cams_global, \
-                        list_corr_geos_cf_vs_cams_global, air_pol_selected, PATH_DIR_PLOTS
+                        list_corr_geos_cf_vs_cams_global, air_pol_selected, PATH_DIR_PLOTS,
+                        start_date, end_date
     ):
 
-    global  no_overlap, start_date_year, end_date_year, delta, \
-            not_available_cams_eu, not_available_goes_cf, not_available_cams_global
+    global  no_overlap, delta, not_available_cams_eu, not_available_goes_cf, not_available_cams_global
 
     if is_previous_elems == False:
         if no_overlap:
@@ -464,26 +466,26 @@ def plot_corr_models(
         else:
             delta_shift = delta
 
-    dates = mdates.drange(start_date_year, end_date_year, delta_shift)
+    dates = mdates.drange(start_date, end_date, delta_shift)
 
     # Set up the axes and figure
-    fig = plt.figure()
+    fig = plt.figure(figsize=(15,9))
 
     # ------------ PLOT CAMS EU vs GEOS CF ------------
     if not_available_cams_eu == False and not_available_goes_cf == False:
         ax_cams_eu_vs_geos_cf = fig.add_subplot(311)
 
-        ax_cams_eu_vs_geos_cf.plot(dates, list_corr_cams_eu_vs_geos_cf, "-o", label="Corr CAMS Europe - GEOS CF")
+        ax_cams_eu_vs_geos_cf.plot(dates, list_corr_cams_eu_vs_geos_cf, "-", label="Corr CAMS Europe - GEOS CF", linewidth=1)
 
         if is_previous_elems: 
             ax_cams_eu_vs_geos_cf.set_title( air_pol_selected + " " + method_corr.upper() + \
-                                            " Correlation " + str(year) + \
+                                            " Correlation " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') + \
                                             " CAMS EU vs GEOS CF " + str(cod_station) + \
                                             " - WL: " + str(windows_lenght) + \
                                             " - Previous")
         else:
             ax_cams_eu_vs_geos_cf.set_title( air_pol_selected + " " + method_corr.upper() + \
-                                            " Correlation " + str(year) + \
+                                            " Correlation " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') + \
                                             " CAMS EU vs GEOS CF " + str(cod_station) + \
                                             " - WL: " + str(windows_lenght) + \
                                             " - Centered")
@@ -499,17 +501,17 @@ def plot_corr_models(
     ax_cams_eu_vs_cams_global = fig.add_subplot(312)
 
     if not_available_cams_eu == False and not_available_goes_cf == False:
-        ax_cams_eu_vs_cams_global.plot(dates, list_corr_cams_eu_vs_cams_global, "-o", label="Corr CAMS Europe - CAMS Global")
+        ax_cams_eu_vs_cams_global.plot(dates, list_corr_cams_eu_vs_cams_global, "-", label="Corr CAMS Europe - CAMS Global", linewidth=1)
 
         if is_previous_elems: 
             ax_cams_eu_vs_cams_global.set_title( air_pol_selected + " " + method_corr.upper() + \
-                                            " Correlation " + str(year) + \
+                                            " Correlation " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') + \
                                             " CAMS EU vs CAMS GLOBAL " + str(cod_station) + \
                                             " - WL: " + str(windows_lenght) + \
                                             " - Previous")
         else:
             ax_cams_eu_vs_cams_global.set_title( air_pol_selected + " " + method_corr.upper() + \
-                                            " Correlation " + str(year) + \
+                                            " Correlation " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') + \
                                             " CAMS EU vs CAMS GLOBAL " + str(cod_station) + \
                                             " - WL: " + str(windows_lenght) + \
                                             " - Centered")
@@ -525,17 +527,17 @@ def plot_corr_models(
     ax_geos_cf_vs_cams_global = fig.add_subplot(313)
 
     if not_available_goes_cf == False and not_available_cams_global == False:
-        ax_geos_cf_vs_cams_global.plot(dates, list_corr_geos_cf_vs_cams_global, "-o", label="Corr GEOS CF - CAMS Global")
+        ax_geos_cf_vs_cams_global.plot(dates, list_corr_geos_cf_vs_cams_global, "-", label="Corr GEOS CF - CAMS Global", linewidth=1)
 
         if is_previous_elems: 
             ax_geos_cf_vs_cams_global.set_title( air_pol_selected + " " + method_corr.upper() + \
-                                            " Correlation " + str(year) + \
+                                            " Correlation " + start_date.isoformat() + " - " + end_date.isoformat() + \
                                             " GEOS CF vs CAMS GLOBAL " + str(cod_station) + \
                                             " - WL: " + str(windows_lenght) + \
                                             " - Previous")
         else:
             ax_geos_cf_vs_cams_global.set_title( air_pol_selected + " " + method_corr.upper() + \
-                                            " Correlation " + str(year) + \
+                                            " Correlation " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') + \
                                             " GEOS CF vs CAMS GLOBAL " + str(cod_station) + \
                                             " - WL: " + str(windows_lenght) + \
                                             " - Centered")
@@ -554,10 +556,10 @@ def plot_corr_models(
 
     if save_plot:
         if is_previous_elems: 
-            filename_fig =  "Corr_" + str(year) + "_MODELS_" + method_corr.upper() + "_WL_" + str(windows_lenght) + \
+            filename_fig =  "Corr_MODELS_" + start_date.strftime('%Y-%m-%d') + "_" + end_date.strftime('%Y-%m-%d') + method_corr.upper() + \
                             "_previous.png"
         else:
-            filename_fig =  "Corr_" + str(year) + "_MODELS_" + method_corr.upper() + "_WL_" + str(windows_lenght) + \
+            filename_fig =  "Corr_MODELS_" + start_date.strftime('%Y-%m-%d') + "_" + end_date.strftime('%Y-%m-%d') + method_corr.upper() + \
                             "_centered.png"
 
         path_fig = joinpath(PATH_DIR_PLOTS, filename_fig)
@@ -571,10 +573,11 @@ def plot_mse_EEA(
                     cod_station, year, windows_lenght, \
                     method_corr, is_previous_elems, \
                     list_mse_EEA_vs_cams_global, list_mse_EEA_vs_geos_cf, \
-                    list_mse_EEA_vs_cams_eu, air_pol_selected, PATH_DIR_PLOTS
+                    list_mse_EEA_vs_cams_eu, air_pol_selected, PATH_DIR_PLOTS, \
+                    start_date, end_date
     ):
 
-    global no_overlap, start_date_year, end_date_year, delta
+    global no_overlap, delta, not_available_cams_eu, not_available_goes_cf, not_available_cams_global
 
     if is_previous_elems == False:
         if no_overlap:
@@ -587,85 +590,88 @@ def plot_mse_EEA(
         else:
             delta_shift = delta
 
-    dates = mdates.drange(start_date_year, end_date_year, delta_shift)
+    dates = mdates.drange(start_date, end_date, delta_shift)
 
     # Set up the axes and figure
-    fig = plt.figure()
+    fig = plt.figure(figsize=(15,9))
 
     # ------------ PLOT EEA vs CAMS GLOBAL ------------
     ax_EEA_vs_cams_global = fig.add_subplot(311)
 
-    ax_EEA_vs_cams_global.plot(dates, list_mse_EEA_vs_cams_global, "-o", label="MSE EEA - CAMS Global")
+    if not_available_cams_global == False:
+        ax_EEA_vs_cams_global.plot(dates, list_mse_EEA_vs_cams_global, "-", label="MSE EEA - CAMS Global", linewidth=1)
 
-    if is_previous_elems: 
-        ax_EEA_vs_cams_global.set_title( air_pol_selected + " " + method_corr.upper() + \
-                                        " MSE " + str(year) + \
-                                        " EEA vs CAMS GLOBAL " + str(cod_station) + \
-                                        " - WL: " + str(windows_lenght) + \
-                                        " - Previous")
-    else:
-        ax_EEA_vs_cams_global.set_title( air_pol_selected + " " + method_corr.upper() + \
-                                         " MSE " + str(year) + \
-                                         " EEA vs CAMS GLOBAL " + str(cod_station) + \
-                                         " - WL: " + str(windows_lenght) + \
-                                         " - Centered")
-    
-    ax_EEA_vs_cams_global.fmt_xdata = mdates.DateFormatter('% Y-% m-% d % H:% M:% S') 
+        if is_previous_elems: 
+            ax_EEA_vs_cams_global.set_title( air_pol_selected + " " + \
+                                            " MSE " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') + + \
+                                            " EEA vs CAMS GLOBAL " + str(cod_station) + \
+                                            " - WL: " + str(windows_lenght) + \
+                                            " - Previous")
+        else:
+            ax_EEA_vs_cams_global.set_title( air_pol_selected + " " + \
+                                            " MSE " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') + \
+                                            " EEA vs CAMS GLOBAL " + str(cod_station) + \
+                                            " - WL: " + str(windows_lenght) + \
+                                            " - Centered")
+        
+        ax_EEA_vs_cams_global.fmt_xdata = mdates.DateFormatter('% Y-% m-% d % H:% M:% S') 
 
-    # Tell matplotlib to interpret the x-axis values as dates
-    ax_EEA_vs_cams_global.xaxis_date()
+        # Tell matplotlib to interpret the x-axis values as dates
+        ax_EEA_vs_cams_global.xaxis_date()
 
-    ax_EEA_vs_cams_global.legend()
+        ax_EEA_vs_cams_global.legend()
 
     # ------------ PLOT EEA vs GEOS CF ------------
     ax_EEA_vs_geos_cf = fig.add_subplot(312)
 
-    ax_EEA_vs_geos_cf.plot(dates, list_mse_EEA_vs_geos_cf, "-o", label="Corr EEA - GEOS CF")
+    if not_available_goes_cf == False:
+        ax_EEA_vs_geos_cf.plot(dates, list_mse_EEA_vs_geos_cf, "-", label="Corr EEA - GEOS CF", linewidth=1)
 
-    if is_previous_elems: 
-        ax_EEA_vs_geos_cf.set_title( air_pol_selected + " " + method_corr.upper() + \
-                                        " MSE " + str(year) + \
-                                        " EEA vs GEOS CF " + str(cod_station) + \
-                                        " - WL: " + str(windows_lenght) + \
-                                        " - Previous")
-    else:
-        ax_EEA_vs_geos_cf.set_title( air_pol_selected + " " + method_corr.upper() + \
-                                         " MSE " + str(year) + \
-                                         " EEA vs GEOS CF " + str(cod_station) + \
-                                         " - WL: " + str(windows_lenght) + \
-                                         " - Centered")
-    
-    ax_EEA_vs_geos_cf.fmt_xdata = mdates.DateFormatter('% Y-% m-% d % H:% M:% S') 
+        if is_previous_elems: 
+            ax_EEA_vs_geos_cf.set_title( air_pol_selected + " " + \
+                                            " MSE " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') + \
+                                            " EEA vs GEOS CF " + str(cod_station) + \
+                                            " - WL: " + str(windows_lenght) + \
+                                            " - Previous")
+        else:
+            ax_EEA_vs_geos_cf.set_title( air_pol_selected + " " + \
+                                            " MSE " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') + \
+                                            " EEA vs GEOS CF " + str(cod_station) + \
+                                            " - WL: " + str(windows_lenght) + \
+                                            " - Centered")
+        
+        ax_EEA_vs_geos_cf.fmt_xdata = mdates.DateFormatter('% Y-% m-% d % H:% M:% S') 
 
-    # Tell matplotlib to interpret the x-axis values as dates
-    ax_EEA_vs_geos_cf.xaxis_date()
+        # Tell matplotlib to interpret the x-axis values as dates
+        ax_EEA_vs_geos_cf.xaxis_date()
 
-    ax_EEA_vs_geos_cf.legend()
+        ax_EEA_vs_geos_cf.legend()
 
     # ------------ PLOT EEA vs CAMS EUROPA ------------
     ax_EEA_vs_cams_eu = fig.add_subplot(313)
 
-    ax_EEA_vs_cams_eu.plot(dates, list_mse_EEA_vs_cams_eu, "-o", label="Corr EEA - CAMS Europe")
+    if not_available_cams_eu == False:
+        ax_EEA_vs_cams_eu.plot(dates, list_mse_EEA_vs_cams_eu, "-", label="Corr EEA - CAMS Europe", linewidth=1)
 
-    if is_previous_elems: 
-        ax_EEA_vs_cams_eu.set_title( air_pol_selected + " " + method_corr.upper() + \
-                                        " MSE " + str(year) + \
-                                        " EEA vs CAMS EU " + str(cod_station) + \
-                                        " - WL: " + str(windows_lenght) + \
-                                        " - Previous")
-    else:
-        ax_EEA_vs_cams_eu.set_title( air_pol_selected + " " + method_corr.upper() + \
-                                         " MSE " + str(year) + \
-                                         " EEA vs CAMS EU " + str(cod_station) + \
-                                         " - WL: " + str(windows_lenght) + \
-                                         " - Centered")
-    
-    ax_EEA_vs_cams_eu.fmt_xdata = mdates.DateFormatter('% Y-% m-% d % H:% M:% S') 
+        if is_previous_elems: 
+            ax_EEA_vs_cams_eu.set_title( air_pol_selected + " " + \
+                                            " MSE " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') + \
+                                            " EEA vs CAMS EU " + str(cod_station) + \
+                                            " - WL: " + str(windows_lenght) + \
+                                            " - Previous")
+        else:
+            ax_EEA_vs_cams_eu.set_title( air_pol_selected + " " +\
+                                            " MSE " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') + \
+                                            " EEA vs CAMS EU " + str(cod_station) + \
+                                            " - WL: " + str(windows_lenght) + \
+                                            " - Centered")
+        
+        ax_EEA_vs_cams_eu.fmt_xdata = mdates.DateFormatter('% Y-% m-% d % H:% M:% S') 
 
-    # Tell matplotlib to interpret the x-axis values as dates
-    ax_EEA_vs_cams_eu.xaxis_date()
+        # Tell matplotlib to interpret the x-axis values as dates
+        ax_EEA_vs_cams_eu.xaxis_date()
 
-    ax_EEA_vs_cams_eu.legend()
+        ax_EEA_vs_cams_eu.legend()
 
     # Make space for and rotate the x-axis tick labels
     # Consente di definire automaticamente la spaziatura tra le
@@ -674,10 +680,10 @@ def plot_mse_EEA(
 
     if save_plot:
         if is_previous_elems: 
-            filename_fig =  "MSE_" + str(year) + "_EEA_" + method_corr.upper() + "_WL_" + str(windows_lenght) + \
+            filename_fig =  "MSE_EEA_" + start_date.strftime('%Y-%m-%d') + "_" + end_date.strftime('%Y-%m-%d') + method_corr.upper() + \
                             "_previous.png"
         else:
-            filename_fig =  "MSE_" + str(year) + "_EEA_" + method_corr.upper() + "_WL_" + str(windows_lenght) + \
+            filename_fig =  "MSE_EEA_" + start_date.strftime('%Y-%m-%d') + "_" + end_date.strftime('%Y-%m-%d') +  method_corr.upper() + \
                             "_centered.png"
 
         path_fig = joinpath(PATH_DIR_PLOTS, filename_fig)
@@ -691,10 +697,11 @@ def plot_mse_models(
                         cod_station, year, windows_lenght, \
                         method_corr, is_previous_elems, \
                         list_mse_cams_eu_vs_geos_cf, list_mse_cams_eu_vs_cams_global, \
-                        list_mse_geos_cf_vs_cams_global, air_pol_selected, PATH_DIR_PLOTS
+                        list_mse_geos_cf_vs_cams_global, air_pol_selected, PATH_DIR_PLOTS, \
+                        start_date, end_date
     ):
 
-    global no_overlap, start_date_year, end_date_year, delta
+    global no_overlap, delta, not_available_cams_eu, not_available_goes_cf, not_available_cams_global
 
     if is_previous_elems == False:
         if no_overlap:
@@ -707,85 +714,88 @@ def plot_mse_models(
         else:
             delta_shift = delta
 
-    dates = mdates.drange(start_date_year, end_date_year, delta_shift)
+    dates = mdates.drange(start_date, end_date, delta_shift)
 
     # Set up the axes and figure
-    fig = plt.figure()
+    fig = plt.figure(figsize=(15,9))
 
     # ------------ PLOT CAMS EU vs GEOS CF ------------
     ax_cams_eu_vs_geos_cf = fig.add_subplot(311)
 
-    ax_cams_eu_vs_geos_cf.plot(dates, list_mse_cams_eu_vs_geos_cf, "-o", label="Corr CAMS Europe - GEOS CF")
+    if not_available_cams_eu == False and not_available_goes_cf == False:
+        ax_cams_eu_vs_geos_cf.plot(dates, list_mse_cams_eu_vs_geos_cf, "-", label="Corr CAMS Europe - GEOS CF", linewidth=1)
 
-    if is_previous_elems: 
-        ax_cams_eu_vs_geos_cf.set_title( air_pol_selected + " " + method_corr.upper() + \
-                                        " MSE " + str(year) + \
-                                        " CAMS EU vs GEOS CF " + str(cod_station) + \
-                                        " - WL: " + str(windows_lenght) + \
-                                        " - Previous")
-    else:
-        ax_cams_eu_vs_geos_cf.set_title( air_pol_selected + " " + method_corr.upper() + \
-                                         " MSE " + str(year) + \
-                                         " CAMS EU vs GEOS CF " + str(cod_station) + \
-                                         " - WL: " + str(windows_lenght) + \
-                                         " - Centered")
-    
-    ax_cams_eu_vs_geos_cf.fmt_xdata = mdates.DateFormatter('% Y-% m-% d % H:% M:% S') 
+        if is_previous_elems: 
+            ax_cams_eu_vs_geos_cf.set_title( air_pol_selected + " " + \
+                                            " MSE " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') + \
+                                            " CAMS EU vs GEOS CF " + str(cod_station) + \
+                                            " - WL: " + str(windows_lenght) + \
+                                            " - Previous")
+        else:
+            ax_cams_eu_vs_geos_cf.set_title( air_pol_selected + " " + \
+                                            " MSE " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') + \
+                                            " CAMS EU vs GEOS CF " + str(cod_station) + \
+                                            " - WL: " + str(windows_lenght) + \
+                                            " - Centered")
+        
+        ax_cams_eu_vs_geos_cf.fmt_xdata = mdates.DateFormatter('% Y-% m-% d % H:% M:% S') 
 
-    # Tell matplotlib to interpret the x-axis values as dates
-    ax_cams_eu_vs_geos_cf.xaxis_date()
+        # Tell matplotlib to interpret the x-axis values as dates
+        ax_cams_eu_vs_geos_cf.xaxis_date()
 
-    ax_cams_eu_vs_geos_cf.legend()
+        ax_cams_eu_vs_geos_cf.legend()
 
     # ------------ PLOT CAMS EU vs CAMS GLOBAL ------------
     ax_cams_eu_vs_cams_global = fig.add_subplot(312)
 
-    ax_cams_eu_vs_cams_global.plot(dates, list_mse_cams_eu_vs_cams_global, "-o", label="Corr CAMS Europe - CAMS Global")
+    if not_available_cams_eu == False and not_available_cams_global == False:
+        ax_cams_eu_vs_cams_global.plot(dates, list_mse_cams_eu_vs_cams_global, "-", label="Corr CAMS Europe - CAMS Global", linewidth=1)
 
-    if is_previous_elems: 
-        ax_cams_eu_vs_cams_global.set_title( air_pol_selected + " " + method_corr.upper() + \
-                                        " MSE " + str(year) + \
-                                        " CAMS EU vs CAMS GLOBAL " + str(cod_station) + \
-                                        " - WL: " + str(windows_lenght) + \
-                                        " - Previous")
-    else:
-        ax_cams_eu_vs_cams_global.set_title( air_pol_selected + " " + method_corr.upper() + \
-                                         " MSE " + str(year) + \
-                                         " CAMS EU vs CAMS GLOBAL " + str(cod_station) + \
-                                         " - WL: " + str(windows_lenght) + \
-                                         " - Centered")
+        if is_previous_elems: 
+            ax_cams_eu_vs_cams_global.set_title( air_pol_selected + " " + \
+                                            " MSE " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') + \
+                                            " CAMS EU vs CAMS GLOBAL " + str(cod_station) + \
+                                            " - WL: " + str(windows_lenght) + \
+                                            " - Previous")
+        else:
+            ax_cams_eu_vs_cams_global.set_title( air_pol_selected + " " + \
+                                            " MSE " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') + \
+                                            " CAMS EU vs CAMS GLOBAL " + str(cod_station) + \
+                                            " - WL: " + str(windows_lenght) + \
+                                            " - Centered")
 
-    ax_cams_eu_vs_cams_global.fmt_xdata = mdates.DateFormatter('% Y-% m-% d % H:% M:% S') 
+        ax_cams_eu_vs_cams_global.fmt_xdata = mdates.DateFormatter('% Y-% m-% d % H:% M:% S') 
 
-    # Tell matplotlib to interpret the x-axis values as dates
-    ax_cams_eu_vs_cams_global.xaxis_date()
+        # Tell matplotlib to interpret the x-axis values as dates
+        ax_cams_eu_vs_cams_global.xaxis_date()
 
-    ax_cams_eu_vs_cams_global.legend()
+        ax_cams_eu_vs_cams_global.legend()
 
     # ------------ PLOT GEOS CF vs CAMS EUROPA ------------
     ax_geos_cf_vs_cams_global = fig.add_subplot(313)
 
-    ax_geos_cf_vs_cams_global.plot(dates, list_mse_geos_cf_vs_cams_global, "-o", label="Corr GEOS CF - CAMS Global")
+    if not_available_goes_cf == False and not_available_cams_global == False:
+        ax_geos_cf_vs_cams_global.plot(dates, list_mse_geos_cf_vs_cams_global, "-", label="Corr GEOS CF - CAMS Global", linewidth=1)
 
-    if is_previous_elems: 
-        ax_geos_cf_vs_cams_global.set_title( air_pol_selected + " " + method_corr.upper() + \
-                                        " MSE " + str(year) + \
-                                        " GEOS CF vs CAMS GLOBAL " + str(cod_station) + \
-                                        " - WL: " + str(windows_lenght) + \
-                                        " - Previous")
-    else:
-        ax_geos_cf_vs_cams_global.set_title( air_pol_selected + " " + method_corr.upper() + \
-                                         " MSE " + str(year) + \
-                                         " GEOS CF vs CAMS GLOBAL " + str(cod_station) + \
-                                         " - WL: " + str(windows_lenght) + \
-                                         " - Centered")
-        
-    ax_geos_cf_vs_cams_global.fmt_xdata = mdates.DateFormatter('% Y-% m-% d % H:% M:% S') 
+        if is_previous_elems: 
+            ax_geos_cf_vs_cams_global.set_title( air_pol_selected + " " + \
+                                            " MSE " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') + \
+                                            " GEOS CF vs CAMS GLOBAL " + str(cod_station) + \
+                                            " - WL: " + str(windows_lenght) + \
+                                            " - Previous")
+        else:
+            ax_geos_cf_vs_cams_global.set_title( air_pol_selected + " " + \
+                                            " MSE " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') +\
+                                            " GEOS CF vs CAMS GLOBAL " + str(cod_station) + \
+                                            " - WL: " + str(windows_lenght) + \
+                                            " - Centered")
+            
+        ax_geos_cf_vs_cams_global.fmt_xdata = mdates.DateFormatter('% Y-% m-% d % H:% M:% S') 
 
-    # Tell matplotlib to interpret the x-axis values as dates
-    ax_geos_cf_vs_cams_global.xaxis_date()
+        # Tell matplotlib to interpret the x-axis values as dates
+        ax_geos_cf_vs_cams_global.xaxis_date()
 
-    ax_geos_cf_vs_cams_global.legend()
+        ax_geos_cf_vs_cams_global.legend()
 
     # Make space for and rotate the x-axis tick labels
     # Consente di definire automaticamente la spaziatura tra le
@@ -794,10 +804,10 @@ def plot_mse_models(
 
     if save_plot:
         if is_previous_elems: 
-            filename_fig =  "MSE_" + str(year) + "_MODELS_" + method_corr.upper() + "_WL_" + str(windows_lenght) + \
+            filename_fig =  "MSE_MODELS_" + start_date.strftime('%Y-%m-%d') + "_" + end_date.strftime('%Y-%m-%d')+ method_corr.upper() + \
                             "_previous.png"
         else:
-            filename_fig =  "MSE_" + str(year) + "_MODELS_" + method_corr.upper() + "_WL_" + str(windows_lenght) + \
+            filename_fig =  "MSE_MODELS_" + start_date.strftime('%Y-%m-%d') + "_" + end_date.strftime('%Y-%m-%d') + method_corr.upper() + \
                             "_centered.png"
 
         path_fig = joinpath(PATH_DIR_PLOTS, filename_fig)
@@ -1234,26 +1244,158 @@ for cod_station in list_cod_stations:
                         cod_station, year_to_consider, windows_lenght, \
                         method_corr, is_previous_elems, \
                         list_corr_EEA_vs_cams_global, list_corr_cams_eu_vs_cams_global, list_corr_EEA_vs_cams_eu, \
-                        air_poll_selected, PATH_DIR_PLOTS_current
+                        air_poll_selected, PATH_DIR_PLOTS_current, \
+                        start_date_year, end_date_year
                 )
         
         plot_corr_models(  
                         cod_station, year_to_consider, windows_lenght, \
                         method_corr, is_previous_elems, \
                         list_corr_cams_eu_vs_geos_cf, list_corr_EEA_vs_geos_cf, \
-                        list_corr_geos_cf_vs_cams_global, air_poll_selected, PATH_DIR_PLOTS_current
+                        list_corr_geos_cf_vs_cams_global, air_poll_selected, PATH_DIR_PLOTS_current, \
+                        start_date_year, end_date_year
                 )
 
         plot_mse_EEA(  
                         cod_station, year_to_consider, windows_lenght, \
                         method_corr, is_previous_elems, \
                         list_mse_EEA_vs_cams_global, list_mse_cams_eu_vs_cams_global, list_mse_EEA_vs_cams_eu, \
-                        air_poll_selected, PATH_DIR_PLOTS_current
+                        air_poll_selected, PATH_DIR_PLOTS_current,
+                        start_date_year, end_date_year
                 )
         
         plot_mse_models(  
                         cod_station, year_to_consider, windows_lenght, \
                         method_corr, is_previous_elems, \
                         list_mse_cams_eu_vs_geos_cf, list_mse_EEA_vs_geos_cf, \
-                        list_mse_geos_cf_vs_cams_global, air_poll_selected, PATH_DIR_PLOTS_current
+                        list_mse_geos_cf_vs_cams_global, air_poll_selected, PATH_DIR_PLOTS_current, \
+                        start_date_year, end_date_year
                 )
+    
+        # Split the time series in "split_days_plot" days defined
+        if split_days_plot > 0:
+        
+            delta_days = timedelta(days=split_days_plot)
+            n_hours = delta_days.total_seconds()//3600
+
+            if is_previous_elems == False:
+                if no_overlap:
+                    steps_dict = int(int(n_hours / delta_time_hours) / int(windows_lenght/2))
+                else:
+                    steps_dict = int(n_hours / delta_time_hours)
+            else:
+                if no_overlap:
+                    steps_dict = int(int(n_hours / delta_time_hours) / int(windows_lenght))
+                else:
+                    steps_dict = int(n_hours / delta_time_hours)
+
+            current_start_time_to_display = start_date_year
+            current_end_time_to_display = start_date_year + delta_days
+
+            idx_dict = 0
+
+            res = False
+
+            while res == False:
+                if current_end_time_to_display >= end_date_year:
+                    res = True
+                    current_end_time_to_display = end_date_year
+                    idx_end = len(list_corr_EEA_vs_cams_eu)
+                else:
+                    idx_end = idx_dict + steps_dict
+
+                current_list_corr_EEA_vs_cams_eu = []
+                current_list_mse_EEA_vs_cams_eu = []
+
+                if not_available_cams_eu == False:
+                    current_list_corr_EEA_vs_cams_eu = \
+                            list_corr_EEA_vs_cams_eu[idx_dict : idx_end]
+                    
+                    current_list_mse_EEA_vs_cams_eu = \
+                            list_mse_EEA_vs_cams_eu[idx_dict : idx_end]
+
+                current_list_corr_EEA_vs_geos_cf = []
+                current_list_mse_EEA_vs_geos_cf = []
+
+                if not_available_goes_cf == False:
+                    current_list_corr_EEA_vs_geos_cf = \
+                            list_corr_EEA_vs_geos_cf[idx_dict : idx_end]
+                
+                    current_list_mse_EEA_vs_geos_cf = \
+                            list_mse_EEA_vs_geos_cf[idx_dict : idx_end]
+
+                current_list_corr_EEA_vs_cams_global = []
+                current_list_mse_EEA_vs_cams_global = []
+
+                if not_available_cams_global == False:
+                    current_list_corr_EEA_vs_cams_global = \
+                            list_corr_EEA_vs_cams_global[idx_dict : idx_end]
+                    
+                    current_list_mse_EEA_vs_cams_global = \
+                            list_mse_EEA_vs_cams_global[idx_dict : idx_end]
+                
+                current_list_corr_cams_eu_vs_geos_cf = []
+                current_list_mse_cams_eu_vs_geos_cf = []
+
+                if not_available_cams_eu == False and not_available_goes_cf == False:
+                    current_list_corr_cams_eu_vs_geos_cf = \
+                            list_corr_cams_eu_vs_geos_cf[idx_dict : idx_end]
+                    
+                    current_list_mse_cams_eu_vs_geos_cf = \
+                            list_mse_cams_eu_vs_geos_cf[idx_dict : idx_end]
+                
+                current_list_corr_cams_eu_vs_cams_global = []
+                current_list_mse_cams_eu_vs_cams_global = []
+
+                if not_available_cams_eu == False and not_available_cams_global == False:
+                    current_list_corr_cams_eu_vs_cams_global = \
+                            list_corr_cams_eu_vs_cams_global[idx_dict : idx_end]
+                    
+                    current_list_mse_cams_eu_vs_cams_global = \
+                            list_mse_cams_eu_vs_cams_global[idx_dict : idx_end]
+                
+                current_list_corr_geos_cf_vs_cams_global = []
+                current_list_mse_geos_cf_vs_cams_global = []
+
+                if not_available_goes_cf == False and not_available_cams_global == False:
+                    current_list_corr_geos_cf_vs_cams_global = \
+                            list_corr_geos_cf_vs_cams_global[idx_dict : idx_end]
+                    
+                    current_list_mse_geos_cf_vs_cams_global = \
+                            list_corr_geos_cf_vs_cams_global[idx_dict : idx_end]
+
+                plot_corr_EEA(  
+                                cod_station, year_to_consider, windows_lenght, \
+                                method_corr, is_previous_elems, \
+                                current_list_corr_EEA_vs_cams_global, current_list_corr_cams_eu_vs_cams_global, \
+                                current_list_corr_EEA_vs_cams_eu, air_poll_selected, PATH_DIR_PLOTS_current, \
+                                current_start_time_to_display, current_end_time_to_display
+                    )
+        
+                plot_corr_models(  
+                                cod_station, year_to_consider, windows_lenght, \
+                                method_corr, is_previous_elems, \
+                                current_list_corr_cams_eu_vs_geos_cf, current_list_corr_EEA_vs_geos_cf, \
+                                current_list_corr_geos_cf_vs_cams_global, air_poll_selected, PATH_DIR_PLOTS_current, \
+                                current_start_time_to_display, current_end_time_to_display
+                        )
+
+                plot_mse_EEA(  
+                                cod_station, year_to_consider, windows_lenght, \
+                                method_corr, is_previous_elems, \
+                                current_list_mse_EEA_vs_cams_global, current_list_mse_cams_eu_vs_cams_global, \
+                                current_list_mse_EEA_vs_cams_eu, air_poll_selected, PATH_DIR_PLOTS_current,
+                                current_start_time_to_display, current_end_time_to_display
+                        )
+                
+                plot_mse_models(  
+                                cod_station, year_to_consider, windows_lenght, \
+                                method_corr, is_previous_elems, \
+                                current_list_mse_cams_eu_vs_geos_cf, current_list_mse_EEA_vs_geos_cf, \
+                                current_list_mse_geos_cf_vs_cams_global, air_poll_selected, PATH_DIR_PLOTS_current,
+                                current_start_time_to_display, current_end_time_to_display
+                    )
+            
+                current_start_time_to_display = current_end_time_to_display
+                current_end_time_to_display = current_end_time_to_display + delta_days
+                idx_dict = idx_dict + steps_dict
