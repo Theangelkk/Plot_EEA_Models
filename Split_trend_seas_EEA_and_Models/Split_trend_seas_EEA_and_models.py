@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 import xarray as xr
 import matplotlib.dates as mdates
+from statsmodels.tsa.seasonal import seasonal_decompose
 import gc
 import warnings
 
@@ -38,8 +39,9 @@ def valid_date(d):
 list_air_pollutant = ["CO", "NO2", "O3", "PM2.5", "PM10", "SO2"]
 list_numeric_model_cams_eu = [  "chimere", "ensemble", "EMEP", "LOTOS-EUROS", "MATCH", \
                                 "MINNI", "MOCAGE", "SILAM", "EURAD-IM", "DEHM", "GEM-AQ"]
+list_split_trend_seasonlity = ["multiplicative", "additive"]
 
-parser = argparse.ArgumentParser(description='Plot EEA - CAMS Europe - GEOS CF - CAMS Global')
+parser = argparse.ArgumentParser(description='Decompose Trend and Seasonality of EEA - CAMS Europe - GEOS CF - CAMS Global')
 parser.add_argument('-a', '--air_pollutant', help='Air Pollutant CO - NO2 - O3 - PM2.5 - PM10 - SO2', choices=list_air_pollutant, required=True)
 parser.add_argument('-list_cod_stations', '--list_cod_stations', help='List of code stations EEA', nargs='+', required=True)
 parser.add_argument('-m_air_pol', '--m_air_pol', help='Model level for air pollution', type=int, required=True)
@@ -52,14 +54,15 @@ parser.add_argument('-cams_eu', '--cams_eu', help='chimere - ensemble - EMEP - L
 parser.add_argument('-compute_air_dens', '--compute_air_density', help='Compute with formula the air density', action='store_true')
 parser.add_argument('-co_ug_m^3', '--co_ug_m^3', help='CO in ug/m^3', action='store_true')
 parser.add_argument('-save_plot', '--save_plot', help='Save plot data', action='store_true')
-parser.add_argument('-split_days_plot', '--split_days_plot', help='How many days to visualize in one plot', type=int, required=True)
+parser.add_argument('-decompose_trend_seas', '--decompose_trend_seas', help='Method for decomposing the time series analysed', \
+                        choices=list_split_trend_seasonlity, required=True)
 args = vars(parser.parse_args())
 
 air_poll_selected = args["air_pollutant"]
 list_cod_stations = args["list_cod_stations"]
 start_date_time_to_display = args["start_date"]
 end_date_time_to_display = args["end_date"]
-split_days_plot = int(args["split_days_plot"])
+decompose_trend_seas = args["decompose_trend_seas"]
 
 # If it asked the visualization of CO in ug/m^3
 co_in_ug_m3 = args["co_ug_m^3"]
@@ -529,7 +532,7 @@ for cod_station in list_cod_stations:
 
     dict_values_cams_global[cod_station] = df_cams_global['Concentration'].values
 
-# ------------------ PLOT -----------------------
+# ------------------ Decompose Trend and Sesonality ------------------
 # Path of Plots
 PATH_DIR_PLOTS = os.environ['Plot_dir']
 
@@ -537,10 +540,7 @@ if PATH_DIR_PLOTS == "":
     print("Error: set the environmental variables of Plot_dir")
     exit(-1)
 
-if not os.path.exists(PATH_DIR_PLOTS):
-  os.mkdir(PATH_DIR_PLOTS)
-
-PATH_DIR_PLOTS = joinpath(PATH_DIR_PLOTS, "EEA_plots_all_air_model_" + str(model_level_air_pollution) + "_pm_" + str(model_level_pm) + "_camsEU_" + str(list_numeric_model_cams_eu[idx_numeric_model_cams_eu]))
+PATH_DIR_PLOTS = joinpath(PATH_DIR_PLOTS, "Dec_Trend_Seas_EEA_and_all_air_model_" + str(model_level_air_pollution) + "_pm_" + str(model_level_pm) + "_camsEU_" + str(list_numeric_model_cams_eu[idx_numeric_model_cams_eu]))
 
 if not os.path.exists(PATH_DIR_PLOTS):
     os.mkdir(PATH_DIR_PLOTS)
@@ -569,8 +569,20 @@ elif air_poll_selected == "CO":
 if not os.path.exists(PATH_DIR_PLOTS):
     os.mkdir(PATH_DIR_PLOTS)
 
+# Multiplicative Decomposition: This technique allws to decompose the product of
+# the Trend-Cycle Component T, Seasonal Component S and the noise R:
+# Y = T * S * R
+if decompose_trend_seas == list_split_trend_seasonlity[0]:
+    method_decomposition = list_split_trend_seasonlity[0]
+
+# Additive Decomposition: This technique allws to decompose the sum of
+# the Trend-Cycle Component T, Seasonal Component S and the noise R:
+# Y = T + S + R
+else:
+    method_decomposition = list_split_trend_seasonlity[1]
+
 for cod_station in list_cod_stations:
-    
+
     region_cod_station = dict_code_stations[cod_station][2]
     PATH_DIR_PLOTS_current = joinpath(PATH_DIR_PLOTS, region_cod_station)
 
@@ -582,55 +594,54 @@ for cod_station in list_cod_stations:
     if not os.path.exists(PATH_DIR_PLOTS_current):
         os.mkdir(PATH_DIR_PLOTS_current)
 
-    plot(   
-            cod_station, air_poll_selected, dict_values_EEA_station[cod_station], \
-            dict_values_cams_global[cod_station], dict_values_geos_cf[cod_station], \
-            dict_values_cams_eu[cod_station], PATH_DIR_PLOTS_current, start_date_time_to_display, \
-            end_date_time_to_display
-    )
+    # Decomposition of EEA station
+    plt.figure(figsize=(10,6))
+    seasonal_decompose(pd.Series(dict_values_EEA_station[cod_station]), model=method_decomposition)
+    plt.title(method_decomposition + " decomposition of " + air_poll_selected + " of EEA - " + str(cod_station))
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
 
-    # Split the time series in "split_days_plot" days defined
-    if split_days_plot > 0:
-        
-        delta_days = timedelta(days=split_days_plot)
-        n_hours = delta_days.total_seconds()//3600
+    if save_plot:
+        filename_fig = method_decomposition + "_decomp_EEA.png"
+        path_fig = joinpath(PATH_DIR_PLOTS_current, filename_fig)
+        plt.savefig(path_fig, dpi=300)
+    else:
+        plt.show()
 
-        steps_dict = int(n_hours / delta_time_hours)
+    # Decomposition of CAMS Europe
+    plt.figure(figsize=(10,6))
+    seasonal_decompose(pd.Series(dict_values_cams_eu[cod_station]), model=method_decomposition)
+    plt.title(method_decomposition + " decomposition of " + air_poll_selected + " of CAMS Europe - " + str(cod_station))
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
 
-        current_start_time_to_display = start_date_time_to_display
-        current_end_time_to_display = start_date_time_to_display + delta_days
+    if save_plot:
+        filename_fig = method_decomposition + "_decomp_CAMS_Europe.png"
+        path_fig = joinpath(PATH_DIR_PLOTS_current, filename_fig)
+        plt.savefig(path_fig, dpi=300)
+    else:
+        plt.show()
 
-        idx_dict = 0
+    # Decomposition of GEOS CF
+    plt.figure(figsize=(10,6))
+    seasonal_decompose(pd.Series(dict_values_geos_cf[cod_station]), model=method_decomposition)
+    plt.title(method_decomposition + " decomposition of " + air_poll_selected + " of GEOS CF - " + str(cod_station))
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
 
-        res = False
+    if save_plot:
+        filename_fig = method_decomposition + "_decomp_GEOS_CF.png"
+        path_fig = joinpath(PATH_DIR_PLOTS_current, filename_fig)
+        plt.savefig(path_fig, dpi=300)
+    else:
+        plt.show()
 
-        while res == False:
-            if current_end_time_to_display >= end_date_time_to_display:
-                res = True
-                current_end_time_to_display = end_date_time_to_display
-                idx_end = len(dict_values_EEA_station[cod_station])
-            else:
-                idx_end = idx_dict + steps_dict
-    
-            current_dict_values_EEA_station = \
-                        dict_values_EEA_station[cod_station][idx_dict : idx_end]
+    # Decomposition of CAMS Global
+    plt.figure(figsize=(10,6))
+    seasonal_decompose(pd.Series(dict_values_cams_global[cod_station]), model=method_decomposition)
+    plt.title(method_decomposition + " decomposition of " + air_poll_selected + " of CAMS Global - " + str(cod_station))
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
 
-            current_dict_values_cams_eu = \
-                        dict_values_cams_eu[cod_station][idx_dict : idx_end]
-            
-            current_dict_values_geos_cf = \
-                        dict_values_geos_cf[cod_station][idx_dict : idx_end]
-
-            current_dict_values_cams_global = \
-                        dict_values_cams_global[cod_station][idx_dict : idx_end]
-
-            plot(   
-                    cod_station, air_poll_selected, current_dict_values_EEA_station, \
-                    current_dict_values_cams_global, current_dict_values_geos_cf, \
-                    current_dict_values_cams_eu, PATH_DIR_PLOTS_current, current_start_time_to_display, \
-                    current_end_time_to_display
-            )
-
-            current_start_time_to_display = current_end_time_to_display
-            current_end_time_to_display = current_end_time_to_display + delta_days
-            idx_dict = idx_dict + steps_dict
+    if save_plot:
+        filename_fig = method_decomposition + "_decomp_CAMS_Global.png"
+        path_fig = joinpath(PATH_DIR_PLOTS_current, filename_fig)
+        plt.savefig(path_fig, dpi=300)
+    else:
+        plt.show()
