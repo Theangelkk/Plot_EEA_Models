@@ -342,7 +342,7 @@ def plot_corr_EEA(
         else:
             delta_shift = delta
 
-    dates = mdates.drange(start_date, end_date, delta_shift)[:len(list_corr_EEA_vs_cams_global)]
+    dates = mdates.drange(start_date, end_date, delta_shift)
 
     # Set up the axes and figure --> Default figsize (width: 6.4, height: 4.8)
     fig = plt.figure(figsize=(15,9))
@@ -715,7 +715,7 @@ def plot_mse_models(
             delta_shift = delta
 
     dates = mdates.drange(start_date, end_date, delta_shift)
-
+    
     # Set up the axes and figure
     fig = plt.figure(figsize=(15,9))
 
