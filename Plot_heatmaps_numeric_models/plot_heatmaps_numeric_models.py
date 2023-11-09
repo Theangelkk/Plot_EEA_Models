@@ -1,3 +1,5 @@
+# Plot of all heatmaps of numeric models
+
 # conda activate Plot_all_air_pol
 
 # Link: https://www.meteoblue.com/en/weather-maps/#map=particulateMatter~pm2.5~CAMSEU~sfc~none&coords=3.09/46.54/26.12
@@ -182,7 +184,7 @@ def load_ds_datasets(current_date):
 
     return ds_cams_eu, ds_cams_global, ds_geos_cf
 
-# ------------ Information on CAMS EUROPA ------------
+# ------------ Information on CAMS EUROPE ------------
 not_available_cams_eu = False
 
 # Path of CAMS Europe
@@ -340,7 +342,7 @@ def plot_heatmap(lon_bounds, lat_bounds, list_idx_lat, list_idx_lon, list_air_po
 
     ax_geos_cf.set_title(title + " GEOS CF (0,25° x 0,25°)")
 
-    # ------------ PLOT CAMS EUROPA ------------
+    # ------------ PLOT CAMS EUROPE ------------
     ax_cams_eu = fig.add_subplot(313)
     mp = Basemap(   
                     projection='merc',
@@ -383,7 +385,7 @@ if PATH_DIR_PLOTS == "":
 if not os.path.exists(PATH_DIR_PLOTS):
   os.mkdir(PATH_DIR_PLOTS)
 
-PATH_DIR_PLOTS = joinpath(PATH_DIR_PLOTS, "plots_all_air_model_" + str(model_level_air_pollution) + "_pm_" + str(model_level_pm) + "_camsEU_" + str(list_numeric_model_cams_eu[idx_numeric_model_cams_eu]))
+PATH_DIR_PLOTS = joinpath(PATH_DIR_PLOTS, "Plot_heatmaps_air_model_" + str(model_level_air_pollution) + "_pm_" + str(model_level_pm) + "_camsEU_" + str(list_numeric_model_cams_eu[idx_numeric_model_cams_eu]))
 
 if not os.path.exists(PATH_DIR_PLOTS):
   os.mkdir(PATH_DIR_PLOTS)
