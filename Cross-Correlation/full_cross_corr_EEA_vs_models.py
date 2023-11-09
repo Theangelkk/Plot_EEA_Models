@@ -621,6 +621,10 @@ for cod_station in list_cod_stations:
     # maximum cross-correlation value.  
 
     # LINK: https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.correlate.html
+
+    # THEORY LINK:  https://www.wavewalkerdsp.com/2021/12/01/cross-correlation-explained-with-real-signals/
+    #               https://scicoding.com/practical-guide-to-cross-correlation/
+
     # missing_value_elem = np.NaA
     missing_value_elem = 0
 

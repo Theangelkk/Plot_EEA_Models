@@ -1,3 +1,4 @@
+# Scripy of plot of EEA stations and all numeric models (CAMS EU - GEOS CF - CAMS Global)
 # conda activate Plot_all_air_pol
 
 # Libraries
@@ -111,8 +112,8 @@ dict_limit_air_pollutants["O3"] = 100.0
 dict_limit_air_pollutants["O3"] = 250.0
 
 # PM2.5 limit value for 24 hours average: 15.0 ug/m3
-dict_limit_air_pollutants["PM2p5"] = 15.0
-dict_limit_air_pollutants["PM2p5"] = 60.0
+dict_limit_air_pollutants["PM2.5"] = 15.0
+dict_limit_air_pollutants["PM2.5"] = 60.0
 
 # PM10 limit value for 24 hours average: 15.0 ug/m3
 dict_limit_air_pollutants["PM10"] = 15.0
