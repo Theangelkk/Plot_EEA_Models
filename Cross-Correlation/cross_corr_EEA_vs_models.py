@@ -1,4 +1,4 @@
-# Full Cross-correlation EEA vs Models
+# Cross-correlation EEA vs Models
 
 # Libreries
 import os
@@ -24,7 +24,19 @@ warnings.filterwarnings("ignore")
 def joinpath(rootdir, targetdir):
     return os.path.join(os.sep, rootdir + os.sep, targetdir)
 
-list_years = [2013 + idx for idx in range(0,2023-2013)]
+def valid_datetime(dt):
+    for fmt in ('%Y-%m-%dT%H:%M', '%Y-%m-%dT%H:%M:%S',
+                '%Y-%m-%d %H:%M', '%Y-%m-%d %H:%M:%S'):
+        try:
+            return datetime.strptime(dt, fmt)
+        except ValueError:
+            pass
+    raise argparse.ArgumentTypeError("Invalid date: '{0}'.".format(dt))
+
+def valid_date(d):
+    t = 'T00:00'
+    return valid_datetime(d + t)
+
 list_methods_of_corr = ['pearson', 'kendall', 'spearman']
 list_air_pollutant = ["CO", "NO2", "O3", "PM2.5", "PM10", "SO2"]
 list_numeric_model_cams_eu = [  "chimere", "ensemble", "EMEP", "LOTOS-EUROS", "MATCH", \
@@ -36,7 +48,8 @@ parser.add_argument('-list_cod_stations', '--list_cod_stations', help='List of c
 parser.add_argument('-m_air_pol', '--m_air_pol', help='Model level for air pollution', type=int, required=True)
 parser.add_argument('-m_pm', '--m_pm', help='Model level for Particulate', type=int, required=True)
 parser.add_argument('-delta_h', '--delta_hours', type=int, required=True)
-parser.add_argument('-year', '--year', help='Year to consider (2013,2023)', type=int, choices=list_years, required=True)
+parser.add_argument('-s_date', '--start_date', metavar='YYYY-MM-DD HH:MM:SS', type=valid_datetime, required=True)
+parser.add_argument('-e_date', '--end_date', metavar='YYYY-MM-DD HH:MM:SS', type=valid_datetime, required=True)
 parser.add_argument('-cams_eu', '--cams_eu', help='chimere - ensemble - EMEP - LOTOS-EUROS - MATCH - MINNI - MOCAGE - SILAM - EURAD-IM - DEHM - GEM-AQ', \
                      choices=list_numeric_model_cams_eu, required=True)
 parser.add_argument('-compute_air_dens', '--compute_air_density', help='Compute with formula the air density', action='store_true')
@@ -44,9 +57,11 @@ parser.add_argument('-co_ug_m^3', '--co_ug_m^3', help='CO in ug/m^3', action='st
 parser.add_argument('-save_plot', '--save_plot', help='Save plot data', action='store_true')
 args = vars(parser.parse_args())
 
+cams_eu = args["cams_eu"]
 air_poll_selected = args["air_pollutant"]
 list_cod_stations = args["list_cod_stations"]
-year_to_consider = args["year"]
+start_date_time_to_display = args["start_date"]
+end_date_time_to_display = args["end_date"]
 
 # If it asked the visualization of CO in ug/m^3
 co_in_ug_m3 = args["co_ug_m^3"]
@@ -299,25 +314,25 @@ def load_EEA_station(
     return df_station_date_current_year['Concentration'].values, lon_station, lat_station, station_region
 
 # ----------------------- PLOT -----------------------
-def plot_corr_lags_two_time_series( np_first_ts, np_second_ts, np_corr, np_full_corr, np_lags, \
-                                    index_max_value_corr, shifted_corr, title_first_ts, title_second_ts, PATH_DIR_PLOTS):
+def plot_corr_lags_two_time_series( np_first_ts, np_second_ts, np_full_corr, np_lags, \
+                                    index_max_value_corr, title_first_ts, title_second_ts, PATH_DIR_PLOTS):
         
-    global start_date_year, end_date_year, delta, air_poll_selected, save_plot
+    global start_date_time_to_display, end_date_time_to_display, delta, air_poll_selected, save_plot
 
     if air_poll_selected == "CO" and co_in_ug_m3 == False:
         title = air_poll_selected + " mg/m^3 " + cod_station + " " \
-                + start_date_year.isoformat() + " - " + end_date_year.isoformat()
+                + start_date_time_to_display.isoformat() + " - " + end_date_time_to_display.isoformat()
         unit = air_poll_selected + " mg/m^3"
     else:
         title = air_poll_selected + " μg/m^3 " + cod_station + " " \
-                + start_date_year.isoformat() + " - " + end_date_year.isoformat()
+                + start_date_time_to_display.isoformat() + " - " + end_date_time_to_display.isoformat()
         unit = air_poll_selected + " μg/m^3"
 
-    fig, (ax_first_ts, ax_second_ts, ax_corr, ax_lags, ax_shifted_corr) = plt.subplots(5, 1, figsize=(10, 8))
+    fig, (ax_first_ts, ax_second_ts, ax_lags) = plt.subplots(3, 1, figsize=(10, 8))
 
     plt.title(title)
 
-    dates = mdates.drange(start_date_year, end_date_year, delta)
+    dates = mdates.drange(start_date_time_to_display, end_date_time_to_display, delta)
     
     # Plot of first time series
     ax_first_ts.plot(dates, np_first_ts, label=title_first_ts, linewidth=1)
@@ -343,31 +358,12 @@ def plot_corr_lags_two_time_series( np_first_ts, np_second_ts, np_corr, np_full_
     fig.tight_layout()
     fig.autofmt_xdate()
 
-    # Plot of cross-correlation
-    ax_corr.plot(dates, np_corr, label="Cross-correlation", linewidth=1)
-    ax_corr.set_xlabel('Datetime')
-    ax_corr.legend()
-
-    ax_corr.fmt_xdata = mdates.DateFormatter('% Y-% m-% d % H:% M:% S') 
-    ax_corr.xaxis_date()
-
-    fig.tight_layout()
-    fig.autofmt_xdate()
-
     # Plot of cross-correlation lags
     best_lag_value = np_lags[index_max_value_corr]
     ax_lags.plot(np_lags, np_full_corr, label="Full Cross-correlation lags", linewidth=1)
     ax_lags.axvline(x = best_lag_value, color = 'r', label = "Best lag " + str(best_lag_value), linewidth=1)
     ax_lags.set_xlabel('Lag')
     ax_lags.legend()
-
-    # Plot of shifted cross-correlation
-    ax_shifted_corr.plot(dates, shifted_corr, label="Shifted best lag " + str(best_lag_value) + " Cross-correlation", linewidth=1)
-    ax_shifted_corr.set_xlabel('Datetime')
-    ax_shifted_corr.legend()
-
-    ax_shifted_corr.fmt_xdata = mdates.DateFormatter('% Y-% m-% d % H:% M:% S') 
-    ax_shifted_corr.xaxis_date()
 
     fig.tight_layout()
     fig.autofmt_xdate()
@@ -377,7 +373,7 @@ def plot_corr_lags_two_time_series( np_first_ts, np_second_ts, np_corr, np_full_
 
     if save_plot:
         filename_fig = "Cross_corr_" + title_first_ts.replace(" ", "-") + "_" + title_second_ts.replace(" ", "_") + "_" + \
-                        start_date_year.date().strftime("%Y-%m-%d") + "_" + end_date_year.date().strftime("%Y-%m-%d") + ".png"
+                        start_date_time_to_display.date().strftime("%Y-%m-%d") + "_" + end_date_time_to_display.date().strftime("%Y-%m-%d") + ".png"
         path_fig = joinpath(PATH_DIR_PLOTS, filename_fig)
         plt.savefig(path_fig, dpi=300)
     else:
@@ -385,17 +381,14 @@ def plot_corr_lags_two_time_series( np_first_ts, np_second_ts, np_corr, np_full_
 
     plt.close()
 
-start_date_year = datetime(year_to_consider, 1, 1, 0, 0)
-end_date_year = datetime(year_to_consider+1, 1, 1, 0, 0)
-
-previous_date = start_date_year
-current_date = start_date_year
+previous_date = start_date_time_to_display
+current_date = start_date_time_to_display
 
 ds_cams_eu = None
 ds_cams_global = None
 ds_geos_cf = None
 
-diff_dates = end_date_year - start_date_year
+diff_dates = end_date_time_to_display - start_date_time_to_display
 diff_dates_hours = int(diff_dates.total_seconds() / (60*60*delta_time_hours))
 delta = timedelta(hours=delta_time_hours)
 
@@ -423,7 +416,7 @@ dict_values_cams_global = {}
 for cod_station in list_cod_stations:
 
     df_station_date_current_year_values, lon_station, lat_station, region_station = \
-        load_EEA_station(   cod_station, current_date, end_date_year-delta, \
+        load_EEA_station(   cod_station, current_date, end_date_time_to_display-delta, \
                             df_air_pol_data, df_air_pol_metainfo
                         )
     
@@ -448,7 +441,7 @@ for time in range(diff_dates_hours):
 
         for cod_station in list_cod_stations:
             df_station_date_current_year_values, lon_station, lat_station, region_station = \
-                load_EEA_station(   cod_station, current_date, end_date_year-delta, \
+                load_EEA_station(   cod_station, current_date, end_date_time_to_display-delta, \
                                     df_air_pol_data, df_air_pol_metainfo
                             )
     
@@ -540,15 +533,15 @@ def write_file_corr(
                         title1, title2, PATH_DIR
                     ):
         
-    global start_date_year, end_date_year
+    global start_date_time_to_display, end_date_time_to_display
 
     filename =  title1.replace(" ", "_") + "_" + title2.replace(" ", "_") + "_" + \
-                start_date_year.date().strftime("%Y-%m-%d") + "_" + end_date_year.date().strftime("%Y-%m-%d") + ".txt"
+                start_date_time_to_display.date().strftime("%Y-%m-%d") + "_" + end_date_time_to_display.date().strftime("%Y-%m-%d") + ".txt"
     path_file_log = joinpath(PATH_DIR, filename)
 
     with open(path_file_log, "w") as file:
         file.write( "Cross-Corrlation with lags between " + title1 + " and " + title2 + \
-                    " from " + start_date_year.isoformat() + " to " + end_date_year.isoformat() + "\n\n")
+                    " from " + start_date_time_to_display.isoformat() + " to " + end_date_time_to_display.isoformat() + "\n\n")
         
         file.write("Best lag " + str(lag_max_value_corr) + " : " + str(max_value_corr) + "\n\n")
 
@@ -556,12 +549,41 @@ def write_file_corr(
             string_output = "Lag " + str(lags[i]) + ": " + str(corr[i]) + "\n"
             file.write(string_output)
 
+def fill_row_csv(  
+                    cod_station, best_lag_EEA_cams_eu, best_lag_EEA_geos_cf, best_lag_EEA_cams_global, \
+                    best_lag_cams_eu_geos_cf, best_lag_cams_eu_cams_global, best_lag_geos_cf_cams_global
+                ):
+
+    global  cams_eu, model_level_air_pollution, model_level_pm, air_poll_selected, \
+            start_date_time_to_display, end_date_time_to_display
+
+    if air_poll_selected == "PM2.5" or air_poll_selected == "PM10":
+        model_level = model_level_pm
+    else:
+        model_level = model_level_air_pollution
+
+    list_row = [    
+                    cod_station, cams_eu, model_level, start_date_time_to_display, end_date_time_to_display, \
+                    best_lag_EEA_cams_eu, best_lag_EEA_geos_cf, best_lag_EEA_cams_global, \
+                    best_lag_cams_eu_geos_cf, best_lag_cams_eu_cams_global, best_lag_geos_cf_cams_global
+                ]
+
+    return list_row
+
 # Path of Plots
 PATH_DIR_PLOTS = os.environ['Plot_dir']
 
 if PATH_DIR_PLOTS == "":
     print("Error: set the environmental variables of Plot_dir")
     exit(-1)
+
+if not os.path.exists(PATH_DIR_PLOTS):
+    os.mkdir(PATH_DIR_PLOTS)
+
+PATH_DIR_CSV = joinpath(PATH_DIR_PLOTS, "CSV")
+
+if not os.path.exists(PATH_DIR_CSV):
+    os.mkdir(PATH_DIR_CSV)
 
 PATH_DIR_PLOTS = joinpath(PATH_DIR_PLOTS, "Full_cross_corr_EEA_vs_all_air_model_" + str(model_level_air_pollution) + "_pm_" + str(model_level_pm) + "_camsEU_" + str(list_numeric_model_cams_eu[idx_numeric_model_cams_eu]))
 
@@ -600,6 +622,11 @@ for cod_station in list_cod_stations:
     if not os.path.exists(PATH_DIR_PLOTS_current):
         os.mkdir(PATH_DIR_PLOTS_current)
 
+    PATH_DIR_CSV_current = joinpath(PATH_DIR_CSV, region_cod_station)
+
+    if not os.path.exists(PATH_DIR_CSV_current):
+        os.mkdir(PATH_DIR_CSV_current)
+
     PATH_DIR_PLOTS_current = joinpath(PATH_DIR_PLOTS_current, cod_station)
 
     if not os.path.exists(PATH_DIR_PLOTS_current):
@@ -611,12 +638,7 @@ for cod_station in list_cod_stations:
     np_values_CAMS_global = np.array(dict_values_cams_global[cod_station])
 
     # NOTE: 
-    # Correlate equal to 1 indicates that the two time series observed are correlated, or
-    # in other simple words, all samples of two time series are related among them. It is
-    # important to note that, the array of correlations is divided respect to the total number
-    # of time series samples.
-    #
-    # Full cross-corration with lag equal to 1 allows to find the peak of the cross-correlation
+    # Cross-corration with lag equal to 1 allows to find the peak of the cross-correlation
     # respect to the lag analysed. For sake of simplicity, the best lag of two time series has the 
     # maximum cross-correlation value.  
 
@@ -630,7 +652,6 @@ for cod_station in list_cod_stations:
 
     # Full Cross-Correlation of EEA station vs CAMS Europe
     if not_available_cams_eu == False:
-        corr_EEA_vs_cams_eu = signal.correlate(np_values_EEA_station, np_values_CAMS_eu, mode='same') / np_values_EEA_station.shape[0]
         full_corr_EEA_vs_cams_eu = signal.correlate(np_values_EEA_station, np_values_CAMS_eu)
         lags_EEA_vs_cams_eu = signal.correlation_lags(len(np_values_EEA_station), len(np_values_CAMS_eu))
 
@@ -641,14 +662,10 @@ for cod_station in list_cod_stations:
         # Normalization between 0 and 1 of Full Cross-correlation lags
         full_corr_EEA_vs_cams_eu /= max_value_corr_EEA_vs_cams_eu
 
-        # Compute the shifted CAMS Europe due to the best lag computed
-        shifted_np_values_CAMS_eu = shift(np_values_CAMS_eu, lag_max_value_corr_EEA_vs_cams_eu, cval=missing_value_elem)
-        shifted_corr_EEA_vs_cams_eu = signal.correlate( np_values_EEA_station, shifted_np_values_CAMS_eu, mode='same') / np_values_EEA_station.shape[0]
-        
         plot_corr_lags_two_time_series( 
                                         np_values_EEA_station, np_values_CAMS_eu, \
-                                        corr_EEA_vs_cams_eu, full_corr_EEA_vs_cams_eu, lags_EEA_vs_cams_eu, \
-                                        index_max_value_corr_EEA_vs_cams_eu, shifted_corr_EEA_vs_cams_eu, \
+                                        full_corr_EEA_vs_cams_eu, lags_EEA_vs_cams_eu, \
+                                        index_max_value_corr_EEA_vs_cams_eu, \
                                         "EEA", "CAMS EU", PATH_DIR_PLOTS_current
                                     )
 
@@ -660,7 +677,6 @@ for cod_station in list_cod_stations:
     
     # Full Cross-Correlation of EEA station vs GEOS CF
     if not_available_goes_cf == False:
-        corr_EEA_vs_geos_cf = signal.correlate(np_values_EEA_station, np_values_geos_cf, mode='same') / np_values_EEA_station.shape[0]
         full_corr_EEA_vs_geos_cf = signal.correlate(np_values_EEA_station, np_values_geos_cf)
         lags_EEA_vs_geos_cf = signal.correlation_lags(len(np_values_EEA_station), len(np_values_geos_cf))
 
@@ -671,14 +687,10 @@ for cod_station in list_cod_stations:
         # Normalization between 0 and 1 of Full Cross-correlation lags
         full_corr_EEA_vs_geos_cf /= max_value_corr_EEA_vs_geos_cf
 
-        # Compute the shifted GEOS CF due to the best lag computed
-        shifted_np_values_geos_cf = shift(np_values_geos_cf, lag_max_value_corr_EEA_vs_geos_cf, cval=missing_value_elem)
-        shifted_corr_EEA_vs_geos_cf = signal.correlate( np_values_EEA_station, shifted_np_values_geos_cf, mode='same') / np_values_EEA_station.shape[0]
-        
         plot_corr_lags_two_time_series( 
                                         np_values_EEA_station, np_values_geos_cf, \
-                                        corr_EEA_vs_geos_cf, full_corr_EEA_vs_geos_cf, lags_EEA_vs_geos_cf, \
-                                        index_max_value_corr_EEA_vs_geos_cf, shifted_corr_EEA_vs_geos_cf, \
+                                        full_corr_EEA_vs_geos_cf, lags_EEA_vs_geos_cf, \
+                                        index_max_value_corr_EEA_vs_geos_cf, \
                                         "EEA", "GEOS CF", PATH_DIR_PLOTS_current
                                     )
         
@@ -690,7 +702,6 @@ for cod_station in list_cod_stations:
 
     # Full Cross-Correlation of EEA station vs CAMS Global
     if not_available_cams_global == False:
-        corr_EEA_vs_cams_global = signal.correlate(np_values_EEA_station, np_values_CAMS_global, mode='same') / np_values_EEA_station.shape[0]
         full_corr_EEA_vs_cams_global = signal.correlate(np_values_EEA_station, np_values_CAMS_global)
         lags_EEA_vs_cams_global = signal.correlation_lags(len(np_values_EEA_station), len(np_values_CAMS_global))
 
@@ -701,14 +712,10 @@ for cod_station in list_cod_stations:
         # Normalization between 0 and 1 of Full Cross-correlation lags
         full_corr_EEA_vs_cams_global /= max_value_corr_EEA_vs_cams_global
 
-        # Compute the shifted CAMS Global due to the best lag computed
-        shifted_np_values_cams_global = shift(np_values_CAMS_global, lag_max_value_corr_EEA_vs_cams_global, cval=missing_value_elem)
-        shifted_corr_EEA_vs_cams_global = signal.correlate( np_values_EEA_station, shifted_np_values_cams_global, mode='same') / np_values_EEA_station.shape[0]
-        
         plot_corr_lags_two_time_series( 
                                         np_values_EEA_station, np_values_CAMS_global, \
-                                        corr_EEA_vs_cams_global, full_corr_EEA_vs_cams_global, lags_EEA_vs_cams_global, \
-                                        index_max_value_corr_EEA_vs_cams_global, shifted_corr_EEA_vs_cams_global, \
+                                        full_corr_EEA_vs_cams_global, lags_EEA_vs_cams_global, \
+                                        index_max_value_corr_EEA_vs_cams_global, \
                                         "EEA", "CAMS Global", PATH_DIR_PLOTS_current
                                     )
         
@@ -720,7 +727,6 @@ for cod_station in list_cod_stations:
 
     # Full Cross-Correlation of CAMS EU vs GEOS CF
     if not_available_cams_eu == False and not_available_goes_cf == False:
-        corr_cams_eu_vs_geos_cf = signal.correlate(np_values_CAMS_eu, np_values_geos_cf, mode='same') / np_values_CAMS_eu.shape[0]
         full_corr_cams_eu_vs_geos_cf = signal.correlate(np_values_CAMS_eu, np_values_geos_cf)
         lags_cams_eu_vs_geos_cf = signal.correlation_lags(len(np_values_CAMS_eu), len(np_values_geos_cf))
 
@@ -731,14 +737,10 @@ for cod_station in list_cod_stations:
         # Normalization between 0 and 1 of Full Cross-correlation lags
         full_corr_cams_eu_vs_geos_cf /= max_value_corr_cams_eu_vs_geos_cf
 
-        # Compute the shifted GEOS CF due to the best lag computed
-        shifted_np_values_geos_cf = shift(np_values_geos_cf, lag_max_value_corr_cams_eu_vs_geos_cf, cval=missing_value_elem)
-        shifted_corr_cams_eu_vs_geos_cf = signal.correlate(np_values_CAMS_eu, shifted_np_values_geos_cf, mode='same') / np_values_CAMS_eu.shape[0]
-        
         plot_corr_lags_two_time_series( 
                                         np_values_CAMS_eu, np_values_geos_cf, \
-                                        corr_cams_eu_vs_geos_cf, full_corr_cams_eu_vs_geos_cf, lags_cams_eu_vs_geos_cf, \
-                                        index_max_value_corr_cams_eu_vs_geos_cf, shifted_corr_cams_eu_vs_geos_cf, \
+                                        full_corr_cams_eu_vs_geos_cf, lags_cams_eu_vs_geos_cf, \
+                                        index_max_value_corr_cams_eu_vs_geos_cf, \
                                         "CAMS EU", "GEOS CF", PATH_DIR_PLOTS_current
                                     )
 
@@ -750,7 +752,6 @@ for cod_station in list_cod_stations:
 
     # Full Cross-Correlation of CAMS EU vs CAMS Global
     if not_available_cams_eu == False and not_available_cams_global == False:
-        corr_cams_eu_vs_cams_global = signal.correlate(np_values_CAMS_eu, np_values_CAMS_global, mode='same') / np_values_CAMS_eu.shape[0]
         full_corr_cams_eu_vs_cams_global = signal.correlate(np_values_CAMS_eu, np_values_CAMS_global)
         lags_cams_eu_vs_cams_global = signal.correlation_lags(len(np_values_CAMS_eu), len(np_values_CAMS_global))
 
@@ -761,14 +762,10 @@ for cod_station in list_cod_stations:
         # Normalization between 0 and 1 of Full Cross-correlation lags
         full_corr_cams_eu_vs_cams_global /= max_value_corr_cams_eu_vs_cams_global
 
-        # Compute the shifted CAMS Global due to the best lag computed
-        shifted_np_values_cams_global = shift(np_values_CAMS_global, lag_max_value_corr_cams_eu_vs_cams_global, cval=missing_value_elem)
-        shifted_corr_cams_eu_vs_cams_global = signal.correlate(np_values_CAMS_eu, shifted_np_values_cams_global, mode='same') / np_values_CAMS_eu.shape[0]
-        
         plot_corr_lags_two_time_series( 
                                         np_values_CAMS_eu, np_values_CAMS_global, \
-                                        corr_cams_eu_vs_cams_global, full_corr_cams_eu_vs_cams_global, lags_cams_eu_vs_cams_global, \
-                                        index_max_value_corr_cams_eu_vs_cams_global, shifted_corr_cams_eu_vs_cams_global, \
+                                        full_corr_cams_eu_vs_cams_global, lags_cams_eu_vs_cams_global, \
+                                        index_max_value_corr_cams_eu_vs_cams_global, \
                                         "CAMS EU", "CAMS Global", PATH_DIR_PLOTS_current
                                     )
         
@@ -778,7 +775,6 @@ for cod_station in list_cod_stations:
     
     # Full Cross-Correlation of GEOS CF vs CAMS Global
     if not_available_cams_eu == False and not_available_goes_cf == False:
-        corr_geos_cf_vs_cams_global = signal.correlate(np_values_geos_cf, np_values_CAMS_global, mode='same') / np_values_geos_cf.shape[0]
         full_corr_geos_cf_vs_cams_global = signal.correlate(np_values_geos_cf, np_values_CAMS_global)
         lags_geos_cf_vs_cams_global = signal.correlation_lags(len(np_values_geos_cf), len(np_values_CAMS_global))
 
@@ -789,14 +785,10 @@ for cod_station in list_cod_stations:
         # Normalization between 0 and 1 of Full Cross-correlation lags
         full_corr_geos_cf_vs_cams_global /= max_value_corr_geos_cf_vs_cams_global
 
-        # Compute the shifted CAMS Global due to the best lag computed
-        shifted_np_values_cams_global = shift(np_values_CAMS_global, lag_max_value_corr_geos_cf_vs_cams_global, cval=missing_value_elem)
-        shifted_corr_geos_cf_vs_cams_global = signal.correlate(np_values_geos_cf, shifted_np_values_cams_global, mode='same') / np_values_CAMS_eu.shape[0]
-        
         plot_corr_lags_two_time_series( 
                                         np_values_geos_cf, np_values_CAMS_global, \
-                                        corr_geos_cf_vs_cams_global, full_corr_geos_cf_vs_cams_global, lags_geos_cf_vs_cams_global, \
-                                        index_max_value_corr_geos_cf_vs_cams_global, shifted_corr_geos_cf_vs_cams_global, \
+                                        full_corr_geos_cf_vs_cams_global, lags_geos_cf_vs_cams_global, \
+                                        index_max_value_corr_geos_cf_vs_cams_global, \
                                         "GEOS CF", "CAMS Global", PATH_DIR_PLOTS_current
                                     )
         
@@ -805,3 +797,31 @@ for cod_station in list_cod_stations:
                             lag_max_value_corr_geos_cf_vs_cams_global, max_value_corr_geos_cf_vs_cams_global, \
                             "GEOS CF", "CAMS Global", PATH_DIR_PLOTS_current
                         )
+
+        # Write CSV file
+        filename_csv_file = joinpath(PATH_DIR_CSV_current, region_cod_station + ".csv")
+
+        list_current_station = fill_row_csv(   
+                                    cod_station, lag_max_value_corr_EEA_vs_cams_eu, lag_max_value_corr_EEA_vs_geos_cf, \
+                                    lag_max_value_corr_EEA_vs_cams_global, lag_max_value_corr_cams_eu_vs_geos_cf, \
+                                    lag_max_value_corr_cams_eu_vs_cams_global, lag_max_value_corr_geos_cf_vs_cams_global
+                                )
+        
+        columns = [ 
+                            "Cod_station", "Model CAMS EU", "Model level", "Start_date", "End_date", \
+                            "Best_lag_EEA_CAMS_EU", "Best_lag_EEA_GEOS_CF", "Best_lag_EEA_CAMS_GLOBAL", \
+                            "Best_lag_CAMS_EU_GEOS_CF", "Best_lag_CAMS_EU_CAMS_GLOBAL", "Best_lag_GEOS_CF_CAMS_GLOBAL"
+                    ]
+        
+        # Create the pandas DataFrame 
+        df_new = pd.DataFrame([list_current_station], columns=columns) 
+        
+        if os.path.exists(filename_csv_file):
+            df = pd.read_csv(filename_csv_file)
+            df = pd.concat([df, df_new], ignore_index=True)
+
+            # Write CSV file
+            df.to_csv(filename_csv_file)
+        else:
+            # Write CSV file
+            df_new.to_csv(filename_csv_file)
