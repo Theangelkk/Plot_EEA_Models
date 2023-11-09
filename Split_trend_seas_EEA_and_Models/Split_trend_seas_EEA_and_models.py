@@ -48,7 +48,8 @@ parser.add_argument('-list_cod_stations', '--list_cod_stations', help='List of c
 parser.add_argument('-m_air_pol', '--m_air_pol', help='Model level for air pollution', type=int, required=True)
 parser.add_argument('-m_pm', '--m_pm', help='Model level for Particulate', type=int, required=True)
 parser.add_argument('-delta_h', '--delta_hours', type=int, required=True)
-parser.add_argument('-year', '--year', help='Year to consider (2013,2023)', type=int, choices=list_years, required=True)
+parser.add_argument('-s_date', '--start_date', metavar='YYYY-MM-DD HH:MM:SS', type=valid_datetime, required=True)
+parser.add_argument('-e_date', '--end_date', metavar='YYYY-MM-DD HH:MM:SS', type=valid_datetime, required=True)
 parser.add_argument('-cams_eu', '--cams_eu', help='chimere - ensemble - EMEP - LOTOS-EUROS - MATCH - MINNI - MOCAGE - SILAM - EURAD-IM - DEHM - GEM-AQ', \
                      choices=list_numeric_model_cams_eu, required=True)
 parser.add_argument('-compute_air_dens', '--compute_air_density', help='Compute with formula the air density', action='store_true')
@@ -61,7 +62,8 @@ args = vars(parser.parse_args())
 
 air_poll_selected = args["air_pollutant"]
 list_cod_stations = args["list_cod_stations"]
-year_to_consider = args["year"]
+start_date_time_to_display = args["start_date"]
+end_date_time_to_display = args["end_date"]
 decompose_trend_seas = args["decompose_trend_seas"]
 period_decomp = int(args["period_decom"])
 
@@ -407,17 +409,14 @@ def plot(
 
     plt.close()
 
-start_date_year = datetime(year_to_consider, 1, 1, 0, 0)
-end_date_year = datetime(year_to_consider+1, 1, 1, 0, 0)
-
-previous_date = start_date_year
-current_date = start_date_year
+previous_date = start_date_time_to_display
+current_date = start_date_time_to_display
 
 ds_cams_eu = None
 ds_cams_global = None
 ds_geos_cf = None
 
-diff_dates = end_date_year - start_date_year
+diff_dates = end_date_time_to_display - start_date_time_to_display
 diff_dates_hours = int(diff_dates.total_seconds() / (60*60*delta_time_hours))
 delta = timedelta(hours=delta_time_hours)
 
@@ -450,7 +449,7 @@ dict_values_cams_global = {}
 for cod_station in list_cod_stations:
 
     df_station_date_current_year_values, lon_station, lat_station, region_station = \
-        load_EEA_station(   cod_station, current_date, end_date_year-delta, \
+        load_EEA_station(   cod_station, current_date, end_date_time_to_display-delta, \
                             df_air_pol_data, df_air_pol_metainfo
                         )
     
@@ -475,7 +474,7 @@ for time in range(diff_dates_hours):
 
         for cod_station in list_cod_stations:
             df_station_date_current_year_values, lon_station, lat_station, region_station = \
-                load_EEA_station(   cod_station, current_date, end_date_year-delta, \
+                load_EEA_station(   cod_station, current_date, end_date_time_to_display-delta, \
                                     df_air_pol_data, df_air_pol_metainfo
                             )
     
@@ -568,6 +567,9 @@ PATH_DIR_PLOTS = os.environ['Plot_dir']
 if PATH_DIR_PLOTS == "":
     print("Error: set the environmental variables of Plot_dir")
     exit(-1)
+
+if not os.path.exists(PATH_DIR_PLOTS):
+    os.mkdir(PATH_DIR_PLOTS)
 
 PATH_DIR_PLOTS = joinpath(PATH_DIR_PLOTS, "Dec_Trend_Seas_EEA_and_all_air_model_" + str(model_level_air_pollution) + "_pm_" + str(model_level_pm) + "_camsEU_" + str(list_numeric_model_cams_eu[idx_numeric_model_cams_eu]))
 

@@ -39,7 +39,6 @@ def valid_date(d):
     t = 'T00:00'
     return valid_datetime(d + t)
 
-list_years = [2013 + idx for idx in range(0,2023-2013)]
 list_methods_of_corr = ['pearson', 'kendall', 'spearman']
 list_air_pollutant = ["CO", "NO2", "O3", "PM2.5", "PM10", "SO2"]
 list_numeric_model_cams_eu = [  "chimere", "ensemble", "EMEP", "LOTOS-EUROS", "MATCH", \
