@@ -970,7 +970,7 @@ for cod_station in list_cod_stations:
         if not os.path.exists(PATH_DIR_PLOTS_current_log_files):
             os.mkdir(PATH_DIR_PLOTS_current_log_files)
         
-        with open(joinpath(PATH_DIR_PLOTS_current_log_files, "log_nan.txt")) as file:
+        with open(joinpath(PATH_DIR_PLOTS_current_log_files, "log_nan.txt"), "w") as file:
             file.write("NaN cross-correlations values of EEA vs CAMS GLOBAL:" + str(list_count_nan_values_corr[0]) + "\n")
             file.write("NaN cross-correlations values of EEA vs GEOS CF:" + str(list_count_nan_values_corr[1]) + "\n")
             file.write("NaN cross-correlations values of EEA vs CAMS EU " + cams_eu + ": " + str(list_count_nan_values_corr[2]) + "\n")
