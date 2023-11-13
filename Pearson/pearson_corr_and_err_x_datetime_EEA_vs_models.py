@@ -599,10 +599,10 @@ def plot_corr_models(
 
     plt.close()
 
-def plot_mape_EEA(  
+def plot_smape_EEA(  
                     cod_station, windows_lenght, method_corr, is_previous_elems, \
-                    list_mape_EEA_vs_cams_global, list_mape_EEA_vs_geos_cf, \
-                    list_mape_EEA_vs_cams_eu, air_pol_selected, PATH_DIR_PLOTS, \
+                    list_smape_EEA_vs_cams_global, list_smape_EEA_vs_geos_cf, \
+                    list_smape_EEA_vs_cams_eu, air_pol_selected, PATH_DIR_PLOTS, \
                     start_date, end_date
     ):
 
@@ -627,18 +627,18 @@ def plot_mape_EEA(
     # ------------ PLOT EEA vs CAMS GLOBAL ------------
     ax_EEA_vs_cams_global = fig.add_subplot(311)
 
-    if not_available_cams_global == False and len(list_mape_EEA_vs_cams_global) > 0:
-        ax_EEA_vs_cams_global.plot(dates, list_mape_EEA_vs_cams_global, "-", label="MAPE EEA - CAMS Global", linewidth=1)
+    if not_available_cams_global == False and len(list_smape_EEA_vs_cams_global) > 0:
+        ax_EEA_vs_cams_global.plot(dates, list_smape_EEA_vs_cams_global, "-", label="sMAPE EEA - CAMS Global", linewidth=1)
 
         if is_previous_elems: 
             ax_EEA_vs_cams_global.set_title( air_pol_selected + " " + \
-                                            " MAPE " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') + + \
+                                            " sMAPE " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') + + \
                                             " EEA vs CAMS GLOBAL " + str(cod_station) + \
                                             " - WL: " + str(windows_lenght) + \
                                             " - Previous")
         else:
             ax_EEA_vs_cams_global.set_title( air_pol_selected + " " + \
-                                            " MAPE " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') + \
+                                            " sMAPE " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') + \
                                             " EEA vs CAMS GLOBAL " + str(cod_station) + \
                                             " - WL: " + str(windows_lenght) + \
                                             " - Centered")
@@ -656,18 +656,18 @@ def plot_mape_EEA(
     # ------------ PLOT EEA vs GEOS CF ------------
     ax_EEA_vs_geos_cf = fig.add_subplot(312)
 
-    if not_available_goes_cf == False and len(list_mape_EEA_vs_geos_cf) > 0:
-        ax_EEA_vs_geos_cf.plot(dates, list_mape_EEA_vs_geos_cf, "-", label="MAPE EEA - GEOS CF", linewidth=1)
+    if not_available_goes_cf == False and len(list_smape_EEA_vs_geos_cf) > 0:
+        ax_EEA_vs_geos_cf.plot(dates, list_smape_EEA_vs_geos_cf, "-", label="sMAPE EEA - GEOS CF", linewidth=1)
 
         if is_previous_elems: 
             ax_EEA_vs_geos_cf.set_title( air_pol_selected + " " + \
-                                            " MAPE " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') + \
+                                            " sMAPE " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') + \
                                             " EEA vs GEOS CF " + str(cod_station) + \
                                             " - WL: " + str(windows_lenght) + \
                                             " - Previous")
         else:
             ax_EEA_vs_geos_cf.set_title( air_pol_selected + " " + \
-                                            " MAPE " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') + \
+                                            " sMAPE " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') + \
                                             " EEA vs GEOS CF " + str(cod_station) + \
                                             " - WL: " + str(windows_lenght) + \
                                             " - Centered")
@@ -685,18 +685,18 @@ def plot_mape_EEA(
     # ------------ PLOT EEA vs CAMS EUROPA ------------
     ax_EEA_vs_cams_eu = fig.add_subplot(313)
 
-    if not_available_cams_eu == False and len(list_mape_EEA_vs_cams_eu) > 0:
-        ax_EEA_vs_cams_eu.plot(dates, list_mape_EEA_vs_cams_eu, "-", label="MAPE EEA - CAMS Europe", linewidth=1)
+    if not_available_cams_eu == False and len(list_smape_EEA_vs_cams_eu) > 0:
+        ax_EEA_vs_cams_eu.plot(dates, list_smape_EEA_vs_cams_eu, "-", label="sMAPE EEA - CAMS Europe", linewidth=1)
 
         if is_previous_elems: 
             ax_EEA_vs_cams_eu.set_title( air_pol_selected + " " + \
-                                            " MAPE " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') + \
+                                            " sMAPE " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') + \
                                             " EEA vs CAMS EU " + str(cod_station) + \
                                             " - WL: " + str(windows_lenght) + \
                                             " - Previous")
         else:
             ax_EEA_vs_cams_eu.set_title( air_pol_selected + " " +\
-                                            " MAPE " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') + \
+                                            " sMAPE " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') + \
                                             " EEA vs CAMS EU " + str(cod_station) + \
                                             " - WL: " + str(windows_lenght) + \
                                             " - Centered")
@@ -718,10 +718,10 @@ def plot_mape_EEA(
 
     if save_plot:
         if is_previous_elems: 
-            filename_fig =  "MAPE_EEA_" + start_date.strftime('%Y-%m-%d') + "_" + end_date.strftime('%Y-%m-%d') + method_corr.upper() + \
+            filename_fig =  "sMAPE_EEA_" + start_date.strftime('%Y-%m-%d') + "_" + end_date.strftime('%Y-%m-%d') + method_corr.upper() + \
                             "_previous.png"
         else:
-            filename_fig =  "MAPE_EEA_" + start_date.strftime('%Y-%m-%d') + "_" + end_date.strftime('%Y-%m-%d') +  method_corr.upper() + \
+            filename_fig =  "sMAPE_EEA_" + start_date.strftime('%Y-%m-%d') + "_" + end_date.strftime('%Y-%m-%d') +  method_corr.upper() + \
                             "_centered.png"
 
         path_fig = joinpath(PATH_DIR_PLOTS, filename_fig)
@@ -731,10 +731,10 @@ def plot_mape_EEA(
 
     plt.close()
 
-def plot_mape_models(  
+def plot_smape_models(  
                         cod_station, windows_lenght, method_corr, is_previous_elems, \
-                        list_mape_cams_eu_vs_geos_cf, list_mape_cams_eu_vs_cams_global, \
-                        list_mape_geos_cf_vs_cams_global, air_pol_selected, PATH_DIR_PLOTS, \
+                        list_smape_cams_eu_vs_geos_cf, list_smape_cams_eu_vs_cams_global, \
+                        list_smape_geos_cf_vs_cams_global, air_pol_selected, PATH_DIR_PLOTS, \
                         start_date, end_date
     ):
 
@@ -759,18 +759,18 @@ def plot_mape_models(
     # ------------ PLOT CAMS EU vs GEOS CF ------------
     ax_cams_eu_vs_geos_cf = fig.add_subplot(311)
 
-    if not_available_cams_eu == False and not_available_goes_cf == False and len(list_mape_cams_eu_vs_geos_cf) > 0:
-        ax_cams_eu_vs_geos_cf.plot(dates, list_mape_cams_eu_vs_geos_cf, "-", label="MAPE CAMS Europe - GEOS CF", linewidth=1)
+    if not_available_cams_eu == False and not_available_goes_cf == False and len(list_smape_cams_eu_vs_geos_cf) > 0:
+        ax_cams_eu_vs_geos_cf.plot(dates, list_smape_cams_eu_vs_geos_cf, "-", label="sMAPE CAMS Europe - GEOS CF", linewidth=1)
 
         if is_previous_elems: 
             ax_cams_eu_vs_geos_cf.set_title( air_pol_selected + " " + \
-                                            " MAPE " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') + \
+                                            " sMAPE " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') + \
                                             " CAMS EU vs GEOS CF " + str(cod_station) + \
                                             " - WL: " + str(windows_lenght) + \
                                             " - Previous")
         else:
             ax_cams_eu_vs_geos_cf.set_title( air_pol_selected + " " + \
-                                            " MAPE " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') + \
+                                            " sMAPE " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') + \
                                             " CAMS EU vs GEOS CF " + str(cod_station) + \
                                             " - WL: " + str(windows_lenght) + \
                                             " - Centered")
@@ -788,18 +788,18 @@ def plot_mape_models(
     # ------------ PLOT CAMS EU vs CAMS GLOBAL ------------
     ax_cams_eu_vs_cams_global = fig.add_subplot(312)
 
-    if not_available_cams_eu == False and not_available_cams_global == False and len(list_mape_cams_eu_vs_cams_global) > 0:
-        ax_cams_eu_vs_cams_global.plot(dates, list_mape_cams_eu_vs_cams_global, "-", label="MAPE CAMS Europe - CAMS Global", linewidth=1)
+    if not_available_cams_eu == False and not_available_cams_global == False and len(list_smape_cams_eu_vs_cams_global) > 0:
+        ax_cams_eu_vs_cams_global.plot(dates, list_smape_cams_eu_vs_cams_global, "-", label="MAPE CAMS Europe - CAMS Global", linewidth=1)
 
         if is_previous_elems: 
             ax_cams_eu_vs_cams_global.set_title( air_pol_selected + " " + \
-                                            " MAPE " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') + \
+                                            " sMAPE " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') + \
                                             " CAMS EU vs CAMS GLOBAL " + str(cod_station) + \
                                             " - WL: " + str(windows_lenght) + \
                                             " - Previous")
         else:
             ax_cams_eu_vs_cams_global.set_title( air_pol_selected + " " + \
-                                            " MAPE " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') + \
+                                            " sMAPE " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') + \
                                             " CAMS EU vs CAMS GLOBAL " + str(cod_station) + \
                                             " - WL: " + str(windows_lenght) + \
                                             " - Centered")
@@ -817,18 +817,18 @@ def plot_mape_models(
     # ------------ PLOT GEOS CF vs CAMS EUROPA ------------
     ax_geos_cf_vs_cams_global = fig.add_subplot(313)
 
-    if not_available_goes_cf == False and not_available_cams_global == False and len(list_mape_geos_cf_vs_cams_global) > 0:
-        ax_geos_cf_vs_cams_global.plot(dates, list_mape_geos_cf_vs_cams_global, "-", label="MAPE GEOS CF - CAMS Global", linewidth=1)
+    if not_available_goes_cf == False and not_available_cams_global == False and len(list_smape_geos_cf_vs_cams_global) > 0:
+        ax_geos_cf_vs_cams_global.plot(dates, list_smape_geos_cf_vs_cams_global, "-", label="sMAPE GEOS CF - CAMS Global", linewidth=1)
 
         if is_previous_elems: 
             ax_geos_cf_vs_cams_global.set_title( air_pol_selected + " " + \
-                                            " MAPE " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') + \
+                                            " sMAPE " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') + \
                                             " GEOS CF vs CAMS GLOBAL " + str(cod_station) + \
                                             " - WL: " + str(windows_lenght) + \
                                             " - Previous")
         else:
             ax_geos_cf_vs_cams_global.set_title( air_pol_selected + " " + \
-                                            " MAPE " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') +\
+                                            " sMAPE " + start_date.strftime('%Y/%m/%d') + " - " + end_date.strftime('%Y/%m/%d') +\
                                             " GEOS CF vs CAMS GLOBAL " + str(cod_station) + \
                                             " - WL: " + str(windows_lenght) + \
                                             " - Centered")
@@ -850,10 +850,10 @@ def plot_mape_models(
 
     if save_plot:
         if is_previous_elems: 
-            filename_fig =  "MAPE_MODELS_" + start_date.strftime('%Y-%m-%d') + "_" + end_date.strftime('%Y-%m-%d') + method_corr.upper() + \
+            filename_fig =  "sMAPE_MODELS_" + start_date.strftime('%Y-%m-%d') + "_" + end_date.strftime('%Y-%m-%d') + method_corr.upper() + \
                             "_previous.png"
         else:
-            filename_fig =  "MAPE_MODELS_" + start_date.strftime('%Y-%m-%d') + "_" + end_date.strftime('%Y-%m-%d') + method_corr.upper() + \
+            filename_fig =  "sMAPE_MODELS_" + start_date.strftime('%Y-%m-%d') + "_" + end_date.strftime('%Y-%m-%d') + method_corr.upper() + \
                             "_centered.png"
 
         path_fig = joinpath(PATH_DIR_PLOTS, filename_fig)
@@ -1097,10 +1097,11 @@ def split_previous_list_sublists(n, iterable, fillvalue=0.0):
     
     return sublists
 
-def compute_correlation_and_mape(x, y, method_corr):
+def compute_correlation_and_smape(x, y, method_corr, list_corr, list_smape):
 
-    list_corr = []
-    list_mape = []
+    current_list_corr = []
+    current_list_smape = []
+    eps = sys.float_info.epsilon
 
     count_nan_values = 0
 
@@ -1116,10 +1117,24 @@ def compute_correlation_and_mape(x, y, method_corr):
         corr_current_sublist = x_pd.corr(y_pd, method=method_corr)
 
         # Mean Absolute Percentage Error (MAPE)
-        difference = np.abs(np.array(current_sublist_x) - np.array(current_sublist_y))
-        error = difference / np.array(current_sublist_x)
-        mape_current_list = np.mean(error) * 100
+        # difference = np.abs((np.array(current_sublist_x) + eps) - np.array(current_sublist_y))
+        # error = difference / np.abs((np.array(current_sublist_x) + eps))
+        # mape_current_list = np.mean(error) * 100.0
 
+        # Symmetric Mean Absolute Percentage Error (sMAPE)
+        # LINK: https://permetrics.readthedocs.io/en/latest/pages/regression/SMAPE.html
+
+        # The resulting score ranges between 0 and 1, where a score of 0 indicates a perfect match 
+        # between the actual and predicted values, and a score of 1 indicates no match at all. 
+        # A smaller value of SMAPE is better, and it is often multiplied by 100% to obtain the percentage error. 
+        # Best possible score is 0.0, smaller value is better. Range = [0, 1].
+        difference = 2 * np.abs(np.array(current_sublist_x) - np.array(current_sublist_y))
+        error = difference / (np.abs(np.array(current_sublist_x)) + np.abs(np.array(current_sublist_y)) + eps)
+        smape_current_list = np.mean(error) * 100.0
+
+        if smape_current_list > 100.0:
+            smape_current_list = 100.0
+        
         # LINK: https://www.mathworks.com/matlabcentral/answers/506464-getting-a-nan-in-correlation-coefficient
 
         # Viene restituto un valore di correlazione tra due variabili
@@ -1132,10 +1147,13 @@ def compute_correlation_and_mape(x, y, method_corr):
         if math.isnan(corr_current_sublist):
             count_nan_values += 1
 
+        current_list_corr.append(corr_current_sublist)
+        current_list_smape.append(smape_current_list)
+
         list_corr.append(corr_current_sublist)
-        list_mape.append(mape_current_list)
-    
-    return list_corr, list_mape, count_nan_values
+        list_smape.append(smape_current_list)
+
+    return current_list_corr, current_list_smape, list_corr, list_smape, count_nan_values
 
 # ------------------ Correlation ------------------
 # Path of Plots
@@ -1147,6 +1165,16 @@ if PATH_DIR_PLOTS == "":
 
 if not os.path.exists(PATH_DIR_PLOTS):
     os.mkdir(PATH_DIR_PLOTS)
+
+PATH_DIR_XLS = joinpath(PATH_DIR_PLOTS, "XLS_corr_and_smape")
+
+if not os.path.exists(PATH_DIR_XLS):
+    os.mkdir(PATH_DIR_XLS)
+
+PATH_DIR_XLS = joinpath(PATH_DIR_XLS, air_poll_selected)
+
+if not os.path.exists(PATH_DIR_XLS):
+    os.mkdir(PATH_DIR_XLS)
 
 PATH_DIR_PLOTS = joinpath(PATH_DIR_PLOTS, "EEA_corr_err_x_datetime_all_air_model_" + str(model_level_air_pollution) + "_pm_" + str(model_level_pm) + "_camsEU_" + str(list_numeric_model_cams_eu[idx_numeric_model_cams_eu]))
 
@@ -1187,9 +1215,22 @@ if not os.path.exists(PATH_DIR_PLOTS):
 
 for cod_station in list_cod_stations:
 
+    global_list_corr_EEA_vs_cams_global = []
+    global_list_smape_EEA_vs_cams_global = []
+    global_list_corr_EEA_vs_geos_cf = []
+    global_list_smape_EEA_vs_geos_cf = []
+    global_list_corr_EEA_vs_cams_eu = []
+    global_list_smape_EEA_vs_cams_eu = []
+    global_list_corr_cams_eu_vs_geos_cf = []
+    global_list_smape_cams_eu_vs_geos_cf = []
+    global_list_corr_cams_eu_vs_cams_global = []
+    global_list_smape_cams_eu_vs_cams_global = []
+    global_list_corr_geos_cf_vs_cams_global = []
+    global_list_smape_geos_cf_vs_cams_global = []
+
     for windows_lenght in list_windows_lenght:
 
-        list_count_nan_values_corr = [-1,-1,-1,-1,-1,-1]
+        list_count_nan_values_corr = [0,0,0,0,0,0]
 
         if is_previous_elems == False:
             sublists_EEA_station = split_centered_list_sublists(windows_lenght, dict_values_EEA_station[cod_station], 0.0)
@@ -1214,90 +1255,105 @@ for cod_station in list_cod_stations:
             if not_available_cams_eu == False:
                 sublists_cams_eu = split_previous_list_sublists(windows_lenght, dict_values_cams_eu[cod_station], 0.0)
 
-        # Compute correlation and MAPE between EEA vs CAMS Global
+        # Compute correlation and sMAPE between EEA vs CAMS Global
         list_corr_EEA_vs_cams_global = []
-        list_mape_EEA_vs_cams_global = []
-
+        list_smape_EEA_vs_cams_global = []
         if not_available_cams_global == False:
-            list_corr_EEA_vs_cams_global, list_mape_EEA_vs_cams_global, \
-            count_nan_values_EEA_vs_cams_global                                 = compute_correlation_and_mape(    
-                                                                                        sublists_EEA_station, 
-                                                                                        sublists_cams_global, 
-                                                                                        method_corr
-                                                                                    )
+            list_corr_EEA_vs_cams_global, list_smape_EEA_vs_cams_global, \
+            global_list_corr_EEA_vs_cams_global, global_list_smape_EEA_vs_cams_global, \
+            count_nan_values_EEA_vs_cams_global  = compute_correlation_and_smape(    
+                                                                                    sublists_EEA_station, 
+                                                                                    sublists_cams_global, 
+                                                                                    method_corr,
+                                                                                    global_list_corr_EEA_vs_cams_global,
+                                                                                    global_list_smape_EEA_vs_cams_global
+                                                                                )
 
-            list_count_nan_values_corr[0] = count_nan_values_EEA_vs_cams_global
+            list_count_nan_values_corr[0] += count_nan_values_EEA_vs_cams_global
 
-        # Compute correlation and MAPE between EEA vs Geos CF
+        # Compute correlation and sMAPE between EEA vs Geos CF
         list_corr_EEA_vs_geos_cf = []
-        list_mape_EEA_vs_geos_cf = []
+        list_smape_EEA_vs_geos_cf = []
 
         if not_available_goes_cf == False:
-            list_corr_EEA_vs_geos_cf, list_mape_EEA_vs_geos_cf, \
-            count_nan_values_EEA_vs_geos_cf                                     = compute_correlation_and_mape( 
-                                                                                        sublists_EEA_station, 
-                                                                                        sublists_geos_cf, 
-                                                                                        method_corr
-                                                                                    )
+            list_corr_EEA_vs_geos_cf, list_smape_EEA_vs_geos_cf, \
+            global_list_corr_EEA_vs_geos_cf, global_list_smape_EEA_vs_geos_cf, \
+            count_nan_values_EEA_vs_geos_cf = compute_correlation_and_smape( 
+                                                                                sublists_EEA_station, 
+                                                                                sublists_geos_cf, 
+                                                                                method_corr,
+                                                                                global_list_corr_EEA_vs_geos_cf,
+                                                                                global_list_smape_EEA_vs_geos_cf
+                                                                            )
 
-            list_count_nan_values_corr[1] = count_nan_values_EEA_vs_geos_cf
+            list_count_nan_values_corr[1] += count_nan_values_EEA_vs_geos_cf
 
-        # Compute correlation and MAPE between EEA vs CAMS Europe
+        # Compute correlation and sMAPE between EEA vs CAMS Europe
         list_corr_EEA_vs_cams_eu = []
-        list_mape_EEA_vs_cams_eu = []
+        list_smape_EEA_vs_cams_eu = []
 
         if not_available_cams_eu == False:
-            list_corr_EEA_vs_cams_eu, list_mape_EEA_vs_cams_eu, \
-            count_nan_values_EEA_vs_cams_eu                                     = compute_correlation_and_mape(    
-                                                                                        sublists_EEA_station, 
-                                                                                        sublists_cams_eu, 
-                                                                                        method_corr
-                                                                                    )
+            list_corr_EEA_vs_cams_eu, list_smape_EEA_vs_cams_eu, \
+            global_list_corr_EEA_vs_cams_eu, global_list_smape_EEA_vs_cams_eu, \
+            count_nan_values_EEA_vs_cams_eu = compute_correlation_and_smape(    
+                                                                                sublists_EEA_station, 
+                                                                                sublists_cams_eu, 
+                                                                                method_corr,
+                                                                                global_list_corr_EEA_vs_cams_eu,
+                                                                                global_list_smape_EEA_vs_cams_eu
+                                                                            )
             
-            list_count_nan_values_corr[2] = count_nan_values_EEA_vs_cams_eu
+            list_count_nan_values_corr[2] += count_nan_values_EEA_vs_cams_eu
 
-        # Compute correlation and MAPE CAMS Europe vs GEOS CF
+        # Compute correlation and sMAPE CAMS Europe vs GEOS CF
         list_corr_cams_eu_vs_geos_cf = []
-        list_mape_cams_eu_vs_geos_cf = []
+        list_smape_cams_eu_vs_geos_cf = []
 
         if not_available_cams_eu == False and not_available_goes_cf == False:
-            list_corr_cams_eu_vs_geos_cf, list_mape_cams_eu_vs_geos_cf, \
-            count_nan_values_cams_eu_vs_geos_cf                                 = compute_correlation_and_mape(    
-                                                                                        sublists_cams_eu, 
-                                                                                        sublists_geos_cf, 
-                                                                                        method_corr
-                                                                                    )
+            list_corr_cams_eu_vs_geos_cf, list_smape_cams_eu_vs_geos_cf, \
+            global_list_corr_cams_eu_vs_geos_cf, global_list_smape_cams_eu_vs_geos_cf, \
+            count_nan_values_cams_eu_vs_geos_cf = compute_correlation_and_smape(    
+                                                                                    sublists_cams_eu, 
+                                                                                    sublists_geos_cf, 
+                                                                                    method_corr,
+                                                                                    global_list_corr_cams_eu_vs_geos_cf,
+                                                                                    global_list_smape_cams_eu_vs_geos_cf
+                                                                                )
 
-            list_count_nan_values_corr[3] = count_nan_values_cams_eu_vs_geos_cf
+            list_count_nan_values_corr[3] += count_nan_values_cams_eu_vs_geos_cf
 
-        # Compute correlation and MAPE between CAMS Europe vs CAMS Global
+        # Compute correlation and sMAPE between CAMS Europe vs CAMS Global
         list_corr_cams_eu_vs_cams_global = []
-        list_mape_cams_eu_vs_cams_global = []
+        list_smape_cams_eu_vs_cams_global = []
 
         if not_available_cams_eu == False and not_available_cams_global == False:
-            list_corr_cams_eu_vs_cams_global, list_mape_cams_eu_vs_cams_global, \
-            count_nan_values_cams_eu_vs_cams_global                                 = compute_correlation_and_mape(    
-                                                                                            sublists_cams_eu, 
-                                                                                            sublists_cams_global, 
-                                                                                            method_corr
-                                                                                        )
+            list_corr_cams_eu_vs_cams_global, list_smape_cams_eu_vs_cams_global, \
+            global_list_corr_cams_eu_vs_cams_global, global_list_smape_cams_eu_vs_cams_global, \
+            count_nan_values_cams_eu_vs_cams_global= compute_correlation_and_smape(    
+                                                                                    sublists_cams_eu, 
+                                                                                    sublists_cams_global, 
+                                                                                    method_corr,
+                                                                                    global_list_corr_cams_eu_vs_cams_global,
+                                                                                    global_list_smape_cams_eu_vs_cams_global
+                                                                                )
             
-            list_count_nan_values_corr[4] = count_nan_values_cams_eu_vs_cams_global
+            list_count_nan_values_corr[4] += count_nan_values_cams_eu_vs_cams_global
         
-        # Compute correlation and MAPE between GEOS CF vs CAMS Global
+        # Compute correlation and sMAPE between GEOS CF vs CAMS Global
         list_corr_geos_cf_vs_cams_global = []
-        list_mape_geos_cf_vs_cams_global = []
+        list_smape_geos_cf_vs_cams_global = []
 
         if not_available_goes_cf == False and not_available_cams_global == False:
-            list_corr_geos_cf_vs_cams_global, list_mape_geos_cf_vs_cams_global,
-            count_nan_values_geos_cf_vs_cams_global                                 = compute_correlation_and_mape(    
-                                                                                            sublists_geos_cf, 
-                                                                                            sublists_cams_global, 
-                                                                                            method_corr
-                                                                                        )
+            list_corr_geos_cf_vs_cams_global, list_smape_geos_cf_vs_cams_global, global_list_corr_geos_cf_vs_cams_global, global_list_smape_geos_cf_vs_cams_global, count_nan_values_geos_cf_vs_cams_global = compute_correlation_and_smape(    
+                                                                                        sublists_geos_cf, 
+                                                                                        sublists_cams_global, 
+                                                                                        method_corr,
+                                                                                        global_list_corr_geos_cf_vs_cams_global,
+                                                                                        global_list_smape_geos_cf_vs_cams_global
+                                                                                    )
                       
-            list_count_nan_values_corr[5] = count_nan_values_geos_cf_vs_cams_global
-        
+            list_count_nan_values_corr[5] += count_nan_values_geos_cf_vs_cams_global
+            
         # ------------------ PLOT -----------------------
         region_cod_station = dict_code_stations[cod_station][2]
         PATH_DIR_PLOTS_current = joinpath(PATH_DIR_PLOTS, region_cod_station)
@@ -1329,48 +1385,118 @@ for cod_station in list_cod_stations:
                         start_date_time_to_display, end_date_time_to_display
                 )
 
-        plot_mape_EEA(  
+        plot_smape_EEA(  
                         cod_station, windows_lenght, method_corr, is_previous_elems, \
-                        list_mape_EEA_vs_cams_global, list_mape_cams_eu_vs_cams_global, list_mape_EEA_vs_cams_eu, \
+                        list_smape_EEA_vs_cams_global, list_smape_cams_eu_vs_cams_global, list_smape_EEA_vs_cams_eu, \
                         air_poll_selected, PATH_DIR_PLOTS_current,
                         start_date_time_to_display, end_date_time_to_display
                 )
         
-        plot_mape_models(  
-                        cod_station, windows_lenght, method_corr, is_previous_elems, \
-                        list_mape_cams_eu_vs_geos_cf, list_mape_EEA_vs_geos_cf, \
-                        list_mape_geos_cf_vs_cams_global, air_poll_selected, PATH_DIR_PLOTS_current, \
-                        start_date_time_to_display, end_date_time_to_display
-                )
+        plot_smape_models(  
+                            cod_station, windows_lenght, method_corr, is_previous_elems, \
+                            list_smape_cams_eu_vs_geos_cf, list_smape_EEA_vs_geos_cf, \
+                            list_smape_geos_cf_vs_cams_global, air_poll_selected, PATH_DIR_PLOTS_current, \
+                            start_date_time_to_display, end_date_time_to_display
+                        )
     
-        PATH_DIR_PLOTS_current_log_files = joinpath(PATH_DIR_PLOTS_current, "log")
+    PATH_DIR_PLOTS_current_log_files = joinpath(PATH_DIR_PLOTS_current, "log")
 
-        if not os.path.exists(PATH_DIR_PLOTS_current_log_files):
-            os.mkdir(PATH_DIR_PLOTS_current_log_files)
+    if not os.path.exists(PATH_DIR_PLOTS_current_log_files):
+        os.mkdir(PATH_DIR_PLOTS_current_log_files)
 
-        filename_log = start_date_time_to_display.strftime('%Y-%m-%d') + "_" + end_date_time_to_display.strftime('%Y-%m-%d') + ".txt"
+    filename_log = start_date_time_to_display.strftime('%Y-%m-%d') + "_" + end_date_time_to_display.strftime('%Y-%m-%d') + ".txt"
 
-        with open(joinpath(PATH_DIR_PLOTS_current_log_files, filename_log), "w") as file:
-            file.write("NaN cross-correlations values of EEA vs CAMS GLOBAL:" + str(list_count_nan_values_corr[0]) + "\n")
-            file.write("NaN cross-correlations values of EEA vs GEOS CF:" + str(list_count_nan_values_corr[1]) + "\n")
-            file.write("NaN cross-correlations values of EEA vs CAMS EU " + cams_eu + ": " + str(list_count_nan_values_corr[2]) + "\n")
-            file.write("NaN cross-correlations values of CAMS EU vs GEOS CF:" + str(list_count_nan_values_corr[3]) + "\n")
-            file.write("NaN cross-correlations values of CAMS EU vs CAMS GLOBAL:" + str(list_count_nan_values_corr[4]) + "\n")
-            file.write("NaN cross-correlations values of GEOS CF vs CAMS GLOBAL:" + str(list_count_nan_values_corr[5]) + "\n\n")
+    global_list_corr_EEA_vs_cams_global = [x for x in global_list_corr_EEA_vs_cams_global if ~np.isnan(x)]
+    global_list_corr_EEA_vs_geos_cf = [x for x in global_list_corr_EEA_vs_geos_cf if ~np.isnan(x)]
+    global_list_corr_EEA_vs_cams_eu = [x for x in global_list_corr_EEA_vs_cams_eu if ~np.isnan(x)]
+    global_list_corr_cams_eu_vs_geos_cf = [x for x in global_list_corr_cams_eu_vs_geos_cf if ~np.isnan(x)]
+    global_list_corr_cams_eu_vs_cams_global = [x for x in global_list_corr_cams_eu_vs_cams_global if ~np.isnan(x)]
+    global_list_corr_geos_cf_vs_cams_global = [x for x in global_list_corr_geos_cf_vs_cams_global if ~np.isnan(x)]
 
-            file.write("Mean value of MAPE amoung all windows of EEA vs CAMS GLOBAL: " + str(sum(list_mape_EEA_vs_cams_global) / float(len(list_mape_EEA_vs_cams_global)) if len(list_mape_EEA_vs_cams_global) > 0 else 0) + "\n")
-            file.write("Mean value of MAPE amoung all windows of EEA vs GEOS CF: " + str(sum(list_mape_EEA_vs_geos_cf) / float(len(list_mape_EEA_vs_geos_cf)) if len(list_mape_EEA_vs_geos_cf) > 0 else 0) + "\n")
-            file.write("Mean value of MAPE amoung all windows of EEA vs CAMS EU: " + str(sum(list_mape_EEA_vs_cams_eu) / float(len(list_mape_EEA_vs_cams_eu)) if len(list_mape_EEA_vs_cams_eu) > 0 else 0) + "\n")
-            file.write("Mean value of MAPE amoung all windows of CAMS EU vs GEOS CF: " + str(sum(list_mape_cams_eu_vs_geos_cf) / float(len(list_mape_cams_eu_vs_geos_cf)) if len(list_mape_cams_eu_vs_geos_cf) > 0 else 0) + "\n")
-            file.write("Mean value of MAPE amoung all windows of CAMS EU vs CAMS GLOBAL: " + str(sum(list_mape_cams_eu_vs_cams_global) / float(len(list_mape_cams_eu_vs_cams_global)) if len(list_mape_cams_eu_vs_cams_global) > 0 else 0) + "\n")
-            file.write("Mean value of MAPE amoung all windows of GEOS CF vs CAMS GLOBAL: " + str(sum(list_mape_geos_cf_vs_cams_global) / float(len(list_mape_geos_cf_vs_cams_global)) if len(list_mape_geos_cf_vs_cams_global) > 0 else 0) + "\n")
+    with open(joinpath(PATH_DIR_PLOTS_current_log_files, filename_log), "w") as file:
+        file.write("NaN cross-correlations values of EEA vs CAMS GLOBAL:" + str(list_count_nan_values_corr[0]) + "\n")
+        file.write("NaN cross-correlations values of EEA vs GEOS CF:" + str(list_count_nan_values_corr[1]) + "\n")
+        file.write("NaN cross-correlations values of EEA vs CAMS EU " + cams_eu + ": " + str(list_count_nan_values_corr[2]) + "\n")
+        file.write("NaN cross-correlations values of CAMS EU vs GEOS CF:" + str(list_count_nan_values_corr[3]) + "\n")
+        file.write("NaN cross-correlations values of CAMS EU vs CAMS GLOBAL:" + str(list_count_nan_values_corr[4]) + "\n")
+        file.write("NaN cross-correlations values of GEOS CF vs CAMS GLOBAL:" + str(list_count_nan_values_corr[5]) + "\n\n")
 
-            file.write("Mean value of Correlation amoung all windows of EEA vs CAMS GLOBAL: " + str(sum(list_corr_EEA_vs_cams_global) / float(len(list_corr_EEA_vs_cams_global)) if len(list_corr_EEA_vs_cams_global) > 0 else 0) + "\n")
-            file.write("Mean value of Correlation amoung all windows of EEA vs GEOS CF: " + str(sum(list_corr_EEA_vs_geos_cf) / float(len(list_corr_EEA_vs_geos_cf)) if len(list_corr_EEA_vs_geos_cf) > 0 else 0) + "\n")
-            file.write("Mean value of Correlation amoung all windows of EEA vs CAMS EU: " + str(sum(list_corr_EEA_vs_cams_eu) / float(len(list_corr_EEA_vs_cams_eu)) if len(list_corr_EEA_vs_cams_eu) > 0 else 0) + "\n")
-            file.write("Mean value of Correlation amoung all windows of CAMS EU vs GEOS CF: " + str(sum(list_corr_cams_eu_vs_geos_cf) / float(len(list_corr_cams_eu_vs_geos_cf)) if len(list_corr_cams_eu_vs_geos_cf) > 0 else 0) + "\n")
-            file.write("Mean value of Correlation amoung all windows of CAMS EU vs CAMS GLOBAL: " + str(sum(list_corr_cams_eu_vs_cams_global) / float(len(list_corr_cams_eu_vs_cams_global)) if len(list_corr_cams_eu_vs_cams_global) > 0 else 0) + "\n")
-            file.write("Mean value of Correlation amoung all windows of GEOS CF vs CAMS GLOBAL: " + str(sum(list_corr_geos_cf_vs_cams_global) / float(len(list_corr_geos_cf_vs_cams_global)) if len(list_corr_geos_cf_vs_cams_global) > 0 else 0) + "\n")
+        file.write("Mean value of sMAPE amoung all windows of EEA vs CAMS GLOBAL: " + str(sum(global_list_smape_EEA_vs_cams_global) / float(len(global_list_smape_EEA_vs_cams_global)) if len(global_list_smape_EEA_vs_cams_global) > 0 else 0) + "\n")
+        file.write("Mean value of sMAPE amoung all windows of EEA vs GEOS CF: " + str(sum(global_list_smape_EEA_vs_geos_cf) / float(len(global_list_smape_EEA_vs_geos_cf)) if len(global_list_smape_EEA_vs_geos_cf) > 0 else 0) + "\n")
+        file.write("Mean value of sMAPE amoung all windows of EEA vs CAMS EU: " + str(sum(global_list_smape_EEA_vs_cams_eu) / float(len(global_list_smape_EEA_vs_cams_eu)) if len(global_list_smape_EEA_vs_cams_eu) > 0 else 0) + "\n")
+        file.write("Mean value of sMAPE amoung all windows of CAMS EU vs GEOS CF: " + str(sum(global_list_smape_cams_eu_vs_geos_cf) / float(len(global_list_smape_cams_eu_vs_geos_cf)) if len(global_list_smape_cams_eu_vs_geos_cf) > 0 else 0) + "\n")
+        file.write("Mean value of sMAPE amoung all windows of CAMS EU vs CAMS GLOBAL: " + str(sum(global_list_smape_cams_eu_vs_cams_global) / float(len(global_list_smape_cams_eu_vs_cams_global)) if len(global_list_smape_cams_eu_vs_cams_global) > 0 else 0) + "\n")
+        file.write("Mean value of sMAPE amoung all windows of GEOS CF vs CAMS GLOBAL: " + str(sum(global_list_smape_geos_cf_vs_cams_global) / float(len(global_list_smape_geos_cf_vs_cams_global)) if len(global_list_smape_geos_cf_vs_cams_global) > 0 else 0) + "\n")
+
+        file.write("Mean value of Correlation amoung all windows of EEA vs CAMS GLOBAL: " + str(sum(global_list_corr_EEA_vs_cams_global) / float(len(global_list_corr_EEA_vs_cams_global)) if len(global_list_corr_EEA_vs_cams_global) > 0 else 0) + "\n")
+        file.write("Mean value of Correlation amoung all windows of EEA vs GEOS CF: " + str(sum(global_list_corr_EEA_vs_geos_cf) / float(len(global_list_corr_EEA_vs_geos_cf)) if len(global_list_corr_EEA_vs_geos_cf) > 0 else 0) + "\n")
+        file.write("Mean value of Correlation amoung all windows of EEA vs CAMS EU: " + str(sum(global_list_corr_EEA_vs_cams_eu) / float(len(global_list_corr_EEA_vs_cams_eu)) if len(global_list_corr_EEA_vs_cams_eu) > 0 else 0) + "\n")
+        file.write("Mean value of Correlation amoung all windows of CAMS EU vs GEOS CF: " + str(sum(global_list_corr_cams_eu_vs_geos_cf) / float(len(global_list_corr_cams_eu_vs_geos_cf)) if len(global_list_corr_cams_eu_vs_geos_cf) > 0 else 0) + "\n")
+        file.write("Mean value of Correlation amoung all windows of CAMS EU vs CAMS GLOBAL: " + str(sum(global_list_corr_cams_eu_vs_cams_global) / float(len(global_list_corr_cams_eu_vs_cams_global)) if len(global_list_corr_cams_eu_vs_cams_global) > 0 else 0) + "\n")
+        file.write("Mean value of Correlation amoung all windows of GEOS CF vs CAMS GLOBAL: " + str(sum(global_list_corr_geos_cf_vs_cams_global) / float(len(global_list_corr_geos_cf_vs_cams_global)) if len(global_list_corr_geos_cf_vs_cams_global) > 0 else 0) + "\n")
+
+    # Write XSL file
+    columns_xls = [ "cod_station_cams_eu", "model_cams_eu", \
+                    "NaN_values_cross_corr_eea_cams_eu", "NaN_values_cross_corr_eea_geos_cf", "NaN_values_cross_corr_eea_cams_global", \
+                    "NaN_values_cross_corr_cams_eu_geos_cf", "NaN_values_cross_corr_cams_eu_cams_global", "NaN_values_cross_corr_geos_cf_cams_global",
+                    "Mean_value_sMAPE_eea_cams_eu", "Mean_value_sMAPE_eea_geos_cf", "Mean_value_sMAPE_eea_cams_global", \
+                    "Mean_value_sMAPE_cams_eu_geos_cf", "Mean_value_sMAPE_cams_eu_cams_global", "Mean_value_sMAPE_geos_cf_cams_global", \
+                    "Mean_value_corr_eea_cams_eu", "Mean_value_corr_eea_geos_cf", "Mean_value_corr_eea_cams_global", \
+                    "Mean_value_corr_cams_eu_geos_cf", "Mean_value_corr_cams_eu_cams_global", "Mean_value_corr_geos_cf_cams_global",
+                ]
+
+    code_station_cams_eu = [cod_station + "_" + cams_eu]
+    xls_cams_eu = [cams_eu]
+    xls_nan_cross_corr_values_eea_vs_cams_global = [list_count_nan_values_corr[0]]
+    xls_nan_cross_corr_values_eea_vs_geos_cf = [list_count_nan_values_corr[1]]
+    xls_nan_cross_corr_values_eea_vs_cams_eu = [list_count_nan_values_corr[2]]
+    xls_nan_cross_corr_values_cams_eu_vs_geos_cf = [list_count_nan_values_corr[3]]
+    xls_nan_cross_corr_values_cams_eu_vs_cams_global = [list_count_nan_values_corr[4]]
+    xls_nan_cross_corr_values_geos_cf_vs_cams_global = [list_count_nan_values_corr[5]]
+    xls_mean_value_sMAPE_eea_vs_cams_global = [(sum(global_list_smape_EEA_vs_cams_global) / float(len(global_list_smape_EEA_vs_cams_global)) if len(global_list_smape_EEA_vs_cams_global) > 0 else 0)]
+    xls_mean_value_sMAPE_eea_vs_geos_cf = [(sum(global_list_smape_EEA_vs_geos_cf) / float(len(global_list_smape_EEA_vs_geos_cf)) if len(global_list_smape_EEA_vs_geos_cf) > 0 else 0)]
+    xls_mean_value_sMAPE_eea_vs_cams_eu = [(sum(global_list_smape_EEA_vs_cams_eu) / float(len(global_list_smape_EEA_vs_cams_eu)) if len(global_list_smape_EEA_vs_cams_eu) > 0 else 0)]
+    xls_mean_value_sMAPE_cams_eu_vs_geos_cf = [(sum(global_list_smape_cams_eu_vs_geos_cf) / float(len(global_list_smape_cams_eu_vs_geos_cf)) if len(global_list_smape_cams_eu_vs_geos_cf) > 0 else 0)]
+    xls_mean_value_sMAPE_cams_eu_vs_cams_global = [(sum(global_list_smape_cams_eu_vs_cams_global) / float(len(global_list_smape_cams_eu_vs_cams_global)) if len(global_list_smape_cams_eu_vs_cams_global) > 0 else 0)]
+    xls_mean_value_sMAPE_geos_cf_vs_cams_global = [(sum(global_list_smape_geos_cf_vs_cams_global) / float(len(global_list_smape_geos_cf_vs_cams_global)) if len(global_list_smape_geos_cf_vs_cams_global) > 0 else 0)]
+    xls_mean_value_corr_eea_vs_cams_global = [(sum(global_list_corr_EEA_vs_cams_global) / float(len(global_list_corr_EEA_vs_cams_global)) if len(global_list_corr_EEA_vs_cams_global) > 0 else 0)]
+    xls_mean_value_corr_eea_vs_geos_cf = [(sum(global_list_corr_EEA_vs_geos_cf) / float(len(global_list_corr_EEA_vs_geos_cf)) if len(global_list_corr_EEA_vs_geos_cf) > 0 else 0)]
+    xls_mean_value_corr_eea_vs_cams_eu = [(sum(global_list_corr_EEA_vs_cams_eu) / float(len(global_list_corr_EEA_vs_cams_eu)) if len(global_list_corr_EEA_vs_cams_eu) > 0 else 0)]
+    xls_mean_value_corr_cams_eu_vs_geos_cf = [(sum(global_list_corr_cams_eu_vs_geos_cf) / float(len(global_list_corr_cams_eu_vs_geos_cf)) if len(global_list_corr_cams_eu_vs_geos_cf) > 0 else 0)]
+    xls_mean_value_corr_cams_eu_vs_cams_global = [(sum(global_list_corr_cams_eu_vs_cams_global) / float(len(global_list_corr_cams_eu_vs_cams_global)) if len(global_list_corr_cams_eu_vs_cams_global) > 0 else 0)]
+    xls_mean_value_corr_geos_cf_vs_cams_global = [(sum(global_list_corr_geos_cf_vs_cams_global) / float(len(global_list_corr_geos_cf_vs_cams_global)) if len(global_list_corr_geos_cf_vs_cams_global) > 0 else 0)]
+
+    df_xls = pd.DataFrame(list(zip( code_station_cams_eu, xls_cams_eu, \
+                                    xls_nan_cross_corr_values_eea_vs_cams_global, xls_nan_cross_corr_values_eea_vs_geos_cf, xls_nan_cross_corr_values_eea_vs_cams_eu, \
+                                    xls_nan_cross_corr_values_cams_eu_vs_geos_cf, xls_nan_cross_corr_values_cams_eu_vs_cams_global, xls_nan_cross_corr_values_geos_cf_vs_cams_global, \
+                                    xls_mean_value_sMAPE_eea_vs_cams_global, xls_mean_value_sMAPE_eea_vs_geos_cf, xls_mean_value_sMAPE_eea_vs_cams_eu, \
+                                    xls_mean_value_sMAPE_cams_eu_vs_geos_cf, xls_mean_value_sMAPE_cams_eu_vs_cams_global, xls_mean_value_sMAPE_geos_cf_vs_cams_global, \
+                                    xls_mean_value_corr_eea_vs_cams_global, xls_mean_value_corr_eea_vs_geos_cf, xls_mean_value_corr_eea_vs_cams_eu, \
+                                    xls_mean_value_corr_cams_eu_vs_geos_cf, xls_mean_value_corr_cams_eu_vs_cams_global, xls_mean_value_corr_geos_cf_vs_cams_global
+                            )), columns=columns_xls)
+    
+    df_xls = df_xls.set_index('cod_station_cams_eu')
+
+    PATH_DIR_XLS_current = joinpath(PATH_DIR_XLS, region_cod_station)
+
+    if not os.path.exists(PATH_DIR_XLS_current):
+        os.mkdir(PATH_DIR_XLS_current)
+
+    path_xls_file = joinpath(PATH_DIR_XLS_current, air_poll_selected + "_model_level_" + str(model_level_air_pollution) + \
+                                            "_pm_" + str(model_level_pm) + ".xls")
+
+    # If the XSL file not exist
+    if not os.path.exists(path_xls_file):
+        df_xls.to_excel(path_xls_file, sheet_name=region_cod_station, engine="openpyxl")
+    else:
+        xls = pd.ExcelFile(path_xls_file, engine="openpyxl")
+        
+        if region_cod_station in xls.sheet_names:
+            df_load_xls = pd.read_excel(xls, region_cod_station)
+            df_load_xls = df_load_xls.set_index('cod_station_cams_eu')
+            df_new_xls = pd.concat([df_load_xls, df_xls])
+
+            df_new_xls.to_excel(path_xls_file, sheet_name=region_cod_station, engine="openpyxl")
 
         # Split the time series in "split_days_plot" days defined
         if split_days_plot > 0:
@@ -1405,64 +1531,64 @@ for cod_station in list_cod_stations:
                     idx_end = idx_dict + steps_dict
 
                 current_list_corr_EEA_vs_cams_eu = []
-                current_list_mape_EEA_vs_cams_eu = []
+                current_list_smape_EEA_vs_cams_eu = []
 
                 if not_available_cams_eu == False:
                     current_list_corr_EEA_vs_cams_eu = \
                             list_corr_EEA_vs_cams_eu[idx_dict : idx_end]
                     
-                    current_list_mape_EEA_vs_cams_eu = \
-                            list_mape_EEA_vs_cams_eu[idx_dict : idx_end]
+                    current_list_smape_EEA_vs_cams_eu = \
+                            list_smape_EEA_vs_cams_eu[idx_dict : idx_end]
 
                 current_list_corr_EEA_vs_geos_cf = []
-                current_list_mape_EEA_vs_geos_cf = []
+                current_list_smape_EEA_vs_geos_cf = []
 
                 if not_available_goes_cf == False:
                     current_list_corr_EEA_vs_geos_cf = \
                             list_corr_EEA_vs_geos_cf[idx_dict : idx_end]
                 
-                    current_list_mape_EEA_vs_geos_cf = \
-                            list_mape_EEA_vs_geos_cf[idx_dict : idx_end]
+                    current_list_smape_EEA_vs_geos_cf = \
+                            list_smape_EEA_vs_geos_cf[idx_dict : idx_end]
 
                 current_list_corr_EEA_vs_cams_global = []
-                current_list_mape_EEA_vs_cams_global = []
+                current_list_smape_EEA_vs_cams_global = []
 
                 if not_available_cams_global == False:
                     current_list_corr_EEA_vs_cams_global = \
                             list_corr_EEA_vs_cams_global[idx_dict : idx_end]
                     
-                    current_list_mape_EEA_vs_cams_global = \
-                            list_mape_EEA_vs_cams_global[idx_dict : idx_end]
+                    current_list_smape_EEA_vs_cams_global = \
+                            list_smape_EEA_vs_cams_global[idx_dict : idx_end]
                 
                 current_list_corr_cams_eu_vs_geos_cf = []
-                current_list_mape_cams_eu_vs_geos_cf = []
+                current_list_smape_cams_eu_vs_geos_cf = []
 
                 if not_available_cams_eu == False and not_available_goes_cf == False:
                     current_list_corr_cams_eu_vs_geos_cf = \
                             list_corr_cams_eu_vs_geos_cf[idx_dict : idx_end]
                     
-                    current_list_mape_cams_eu_vs_geos_cf = \
-                            list_mape_cams_eu_vs_geos_cf[idx_dict : idx_end]
+                    current_list_smape_cams_eu_vs_geos_cf = \
+                            list_smape_cams_eu_vs_geos_cf[idx_dict : idx_end]
                 
                 current_list_corr_cams_eu_vs_cams_global = []
-                current_list_mape_cams_eu_vs_cams_global = []
+                current_list_smape_cams_eu_vs_cams_global = []
 
                 if not_available_cams_eu == False and not_available_cams_global == False:
                     current_list_corr_cams_eu_vs_cams_global = \
                             list_corr_cams_eu_vs_cams_global[idx_dict : idx_end]
                     
-                    current_list_mape_cams_eu_vs_cams_global = \
-                            list_mape_cams_eu_vs_cams_global[idx_dict : idx_end]
+                    current_list_smape_cams_eu_vs_cams_global = \
+                            list_smape_cams_eu_vs_cams_global[idx_dict : idx_end]
                 
                 current_list_corr_geos_cf_vs_cams_global = []
-                current_list_mape_geos_cf_vs_cams_global = []
+                current_list_smape_geos_cf_vs_cams_global = []
 
                 if not_available_goes_cf == False and not_available_cams_global == False:
                     current_list_corr_geos_cf_vs_cams_global = \
                             list_corr_geos_cf_vs_cams_global[idx_dict : idx_end]
                     
-                    current_list_mape_geos_cf_vs_cams_global = \
-                            list_mape_geos_cf_vs_cams_global[idx_dict : idx_end]
+                    current_list_smape_geos_cf_vs_cams_global = \
+                            list_smape_geos_cf_vs_cams_global[idx_dict : idx_end]
 
                 plot_corr_EEA(  
                                 cod_station, windows_lenght, method_corr, is_previous_elems, \
@@ -1478,17 +1604,17 @@ for cod_station in list_cod_stations:
                                 current_start_time_to_display, current_end_time_to_display
                         )
 
-                plot_mape_EEA(  
+                plot_smape_EEA(  
                                 cod_station, windows_lenght, method_corr, is_previous_elems, \
-                                current_list_mape_EEA_vs_cams_global, current_list_mape_cams_eu_vs_cams_global, \
-                                current_list_mape_EEA_vs_cams_eu, air_poll_selected, PATH_DIR_PLOTS_current,
+                                current_list_smape_EEA_vs_cams_global, current_list_smape_cams_eu_vs_cams_global, \
+                                current_list_smape_EEA_vs_cams_eu, air_poll_selected, PATH_DIR_PLOTS_current,
                                 current_start_time_to_display, current_end_time_to_display
                         )
             
-                plot_mape_models(  
+                plot_smape_models(  
                                 cod_station, windows_lenght, method_corr, is_previous_elems, \
-                                current_list_mape_cams_eu_vs_geos_cf, current_list_mape_EEA_vs_geos_cf, \
-                                current_list_mape_geos_cf_vs_cams_global, air_poll_selected, PATH_DIR_PLOTS_current,
+                                current_list_smape_cams_eu_vs_geos_cf, current_list_smape_EEA_vs_geos_cf, \
+                                current_list_smape_geos_cf_vs_cams_global, air_poll_selected, PATH_DIR_PLOTS_current,
                                 current_start_time_to_display, current_end_time_to_display
                     )
 
@@ -1502,19 +1628,19 @@ for cod_station in list_cod_stations:
                     file.write("NaN cross-correlations values of CAMS EU vs CAMS GLOBAL:" + str(list_count_nan_values_corr[4]) + "\n")
                     file.write("NaN cross-correlations values of GEOS CF vs CAMS GLOBAL:" + str(list_count_nan_values_corr[5]) + "\n\n")
 
-                    file.write("Mean value of MAPE amoung all windows of EEA vs CAMS GLOBAL: " + str(sum(list_mape_EEA_vs_cams_global) / float(len(list_mape_EEA_vs_cams_global)) if len(list_mape_EEA_vs_cams_global) > 0 else 0) + "\n")
-                    file.write("Mean value of MAPE amoung all windows of EEA vs GEOS CF: " + str(sum(list_mape_EEA_vs_geos_cf) / float(len(list_mape_EEA_vs_geos_cf)) if len(list_mape_EEA_vs_geos_cf) > 0 else 0) + "\n")
-                    file.write("Mean value of MAPE amoung all windows of EEA vs CAMS EU: " + str(sum(list_mape_EEA_vs_cams_eu) / float(len(list_mape_EEA_vs_cams_eu)) if len(list_mape_EEA_vs_cams_eu) > 0 else 0) + "\n")
-                    file.write("Mean value of MAPE amoung all windows of CAMS EU vs GEOS CF: " + str(sum(list_mape_cams_eu_vs_geos_cf) / float(len(list_mape_cams_eu_vs_geos_cf)) if len(list_mape_cams_eu_vs_geos_cf) > 0 else 0) + "\n")
-                    file.write("Mean value of MAPE amoung all windows of CAMS EU vs CAMS GLOBAL: " + str(sum(list_mape_cams_eu_vs_cams_global) / float(len(list_mape_cams_eu_vs_cams_global)) if len(list_mape_cams_eu_vs_cams_global) > 0 else 0) + "\n")
-                    file.write("Mean value of MAPE amoung all windows of GEOS CF vs CAMS GLOBAL: " + str(sum(list_mape_geos_cf_vs_cams_global) / float(len(list_mape_geos_cf_vs_cams_global)) if len(list_mape_geos_cf_vs_cams_global) > 0 else 0) + "\n")
+                    file.write("Mean value of sMAPE among all windows of EEA vs CAMS GLOBAL: " + str(sum(list_smape_EEA_vs_cams_global) / float(len(list_smape_EEA_vs_cams_global)) if len(list_smape_EEA_vs_cams_global) > 0 else 0) + "\n")
+                    file.write("Mean value of sMAPE amoug all windows of EEA vs GEOS CF: " + str(sum(list_smape_EEA_vs_geos_cf) / float(len(list_smape_EEA_vs_geos_cf)) if len(list_smape_EEA_vs_geos_cf) > 0 else 0) + "\n")
+                    file.write("Mean value of sMAPE among all windows of EEA vs CAMS EU: " + str(sum(list_smape_EEA_vs_cams_eu) / float(len(list_smape_EEA_vs_cams_eu)) if len(list_smape_EEA_vs_cams_eu) > 0 else 0) + "\n")
+                    file.write("Mean value of sMAPE among all windows of CAMS EU vs GEOS CF: " + str(sum(list_smape_cams_eu_vs_geos_cf) / float(len(list_smape_cams_eu_vs_geos_cf)) if len(list_smape_cams_eu_vs_geos_cf) > 0 else 0) + "\n")
+                    file.write("Mean value of sMAPE among all windows of CAMS EU vs CAMS GLOBAL: " + str(sum(list_smape_cams_eu_vs_cams_global) / float(len(list_smape_cams_eu_vs_cams_global)) if len(list_smape_cams_eu_vs_cams_global) > 0 else 0) + "\n")
+                    file.write("Mean value of sMAPE among all windows of GEOS CF vs CAMS GLOBAL: " + str(sum(list_smape_geos_cf_vs_cams_global) / float(len(list_smape_geos_cf_vs_cams_global)) if len(list_smape_geos_cf_vs_cams_global) > 0 else 0) + "\n")
 
-                    file.write("Mean value of Correlation amoung all windows of EEA vs CAMS GLOBAL: " + str(sum(list_corr_EEA_vs_cams_global) / float(len(list_corr_EEA_vs_cams_global)) if len(list_corr_EEA_vs_cams_global) > 0 else 0) + "\n")
-                    file.write("Mean value of Correlation amoung all windows of EEA vs GEOS CF: " + str(sum(list_corr_EEA_vs_geos_cf) / float(len(list_corr_EEA_vs_geos_cf)) if len(list_corr_EEA_vs_geos_cf) > 0 else 0) + "\n")
-                    file.write("Mean value of Correlation amoung all windows of EEA vs CAMS EU: " + str(sum(list_corr_EEA_vs_cams_eu) / float(len(list_corr_EEA_vs_cams_eu)) if len(list_corr_EEA_vs_cams_eu) > 0 else 0) + "\n")
-                    file.write("Mean value of Correlation amoung all windows of CAMS EU vs GEOS CF: " + str(sum(list_corr_cams_eu_vs_geos_cf) / float(len(list_corr_cams_eu_vs_geos_cf)) if len(list_corr_cams_eu_vs_geos_cf) > 0 else 0) + "\n")
-                    file.write("Mean value of Correlation amoung all windows of CAMS EU vs CAMS GLOBAL: " + str(sum(list_corr_cams_eu_vs_cams_global) / float(len(list_corr_cams_eu_vs_cams_global)) if len(list_corr_cams_eu_vs_cams_global) > 0 else 0) + "\n")
-                    file.write("Mean value of Correlation amoung all windows of GEOS CF vs CAMS GLOBAL: " + str(sum(list_corr_geos_cf_vs_cams_global) / float(len(list_corr_geos_cf_vs_cams_global)) if len(list_corr_geos_cf_vs_cams_global) > 0 else 0) + "\n")
+                    file.write("Mean value of Correlation among all windows of EEA vs CAMS GLOBAL: " + str(sum(list_corr_EEA_vs_cams_global) / float(len(list_corr_EEA_vs_cams_global)) if len(list_corr_EEA_vs_cams_global) > 0 else 0) + "\n")
+                    file.write("Mean value of Correlation among all windows of EEA vs GEOS CF: " + str(sum(list_corr_EEA_vs_geos_cf) / float(len(list_corr_EEA_vs_geos_cf)) if len(list_corr_EEA_vs_geos_cf) > 0 else 0) + "\n")
+                    file.write("Mean value of Correlation among all windows of EEA vs CAMS EU: " + str(sum(list_corr_EEA_vs_cams_eu) / float(len(list_corr_EEA_vs_cams_eu)) if len(list_corr_EEA_vs_cams_eu) > 0 else 0) + "\n")
+                    file.write("Mean value of Correlation among all windows of CAMS EU vs GEOS CF: " + str(sum(list_corr_cams_eu_vs_geos_cf) / float(len(list_corr_cams_eu_vs_geos_cf)) if len(list_corr_cams_eu_vs_geos_cf) > 0 else 0) + "\n")
+                    file.write("Mean value of Correlation among all windows of CAMS EU vs CAMS GLOBAL: " + str(sum(list_corr_cams_eu_vs_cams_global) / float(len(list_corr_cams_eu_vs_cams_global)) if len(list_corr_cams_eu_vs_cams_global) > 0 else 0) + "\n")
+                    file.write("Mean value of Correlation among all windows of GEOS CF vs CAMS GLOBAL: " + str(sum(list_corr_geos_cf_vs_cams_global) / float(len(list_corr_geos_cf_vs_cams_global)) if len(list_corr_geos_cf_vs_cams_global) > 0 else 0) + "\n")
 
                 current_start_time_to_display = current_end_time_to_display
                 current_end_time_to_display = current_end_time_to_display + delta_days
