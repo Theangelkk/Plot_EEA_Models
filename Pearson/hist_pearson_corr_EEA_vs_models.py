@@ -327,12 +327,23 @@ def load_EEA_station(
     df_station_date = df_station_data.set_index('DatetimeBegin')
     df_station_date.index = pd.to_datetime(df_station_date.index)
 
-    # Interpolation of measures
-    df_station_date['Concentration'] = df_station_date['Concentration'].interpolate(method='linear')
+    df_station_date.sort_values(by='DatetimeBegin', ascending = True, inplace = True)
 
     df_station_date_current_year = df_station_date[ df_station_date.index.to_series().between(current_date.isoformat(), end_current_date.isoformat())]
 
-    return df_station_date_current_year['Concentration'].values, lon_station, lat_station, station_region
+    dates = pd.date_range(start=current_date.isoformat(), end=end_current_date.isoformat(), freq="H", tz='UTC+01:00').tolist()
+    conc_dates_nan = [np.nan for i in range(len(dates))]
+
+    df_all_datetime = pd.DataFrame(list(zip(dates, conc_dates_nan)), columns=['DatetimeBegin', 'Concentration'])
+    df_all_datetime = df_all_datetime.set_index('DatetimeBegin')
+
+    for index, row in df_station_date_current_year.iterrows():
+        df_all_datetime.loc[index]["Concentration"] = df_station_date_current_year.loc[index]["Concentration"] 
+    
+    # Interpolation of measures
+    df_all_datetime['Concentration'] = df_all_datetime['Concentration'].interpolate(method='linear')
+    
+    return df_all_datetime['Concentration'].values, lon_station, lat_station, station_region
 
 # ----------------------- PLOT -----------------------
 def plot_hist_EEA(  
