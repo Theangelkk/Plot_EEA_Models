@@ -502,7 +502,7 @@ if PATH_DIR_PLOTS == "":
 if not os.path.exists(PATH_DIR_PLOTS):
   os.mkdir(PATH_DIR_PLOTS)
 
-PATH_DIR_PLOTS = joinpath(PATH_DIR_PLOTS, "EEA_plots_all_air_model_" + str(model_level_air_pollution) + "_pm_" + str(model_level_pm) + "_camsEU_" + str(list_numeric_model_cams_eu[idx_numeric_model_cams_eu]))
+PATH_DIR_PLOTS = joinpath(PATH_DIR_PLOTS, "EEA_plots_CAMS_Reanalysis_Analysis_" + str(model_level_air_pollution) + "_pm_" + str(model_level_pm) + "_camsEU_" + str(list_numeric_model_cams_eu[idx_numeric_model_cams_eu]))
 
 if not os.path.exists(PATH_DIR_PLOTS):
     os.mkdir(PATH_DIR_PLOTS)
