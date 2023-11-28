@@ -359,7 +359,7 @@ def load_EEA_station(
         df_all_datetime.loc[index]["Concentration"] = df_station_date_current_year.loc[index]["Concentration"] 
     
     # Interpolation of measures
-    df_all_datetime['Concentration'] = df_all_datetime['Concentration'].interpolate(method='linear')
+    df_all_datetime['Concentration'].interpolate(method='linear', inplace=True, limit_direction='both')
     
     return df_all_datetime['Concentration'].values, lon_station, lat_station, station_region
 
@@ -567,7 +567,7 @@ for cod_station in list_cod_stations:
     df_cams_global.index = pd.to_datetime(df_cams_global.index)
 
     # Interpolation
-    df_cams_global['Concentration'] = df_cams_global['Concentration'].interpolate(method='linear')
+    df_cams_global['Concentration'].interpolate(method='linear', inplace=True, limit_direction='both')
 
     dict_values_cams_global[cod_station] = df_cams_global['Concentration'].values
 

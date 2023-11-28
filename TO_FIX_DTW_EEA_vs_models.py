@@ -218,6 +218,7 @@ time_res_cams_global = 3
 
 start_time_cams_global = datetime(2003, 1, 1, 0, 0)
 end_time_cams_global = datetime(2022, 12, 1, 0, 0)
+
 def load_ds_datasets(current_date):
 
     global  dict_start_time_numeric_models_cams_eu, numeric_model_selected, \
@@ -310,7 +311,7 @@ def load_EEA_station(
     df_station_date.index = pd.to_datetime(df_station_date.index)
 
     # Interpolation of measures
-    df_station_date['Concentration'] = df_station_date['Concentration'].interpolate(method='linear')
+    df_station_date['Concentration'].interpolate(method='linear', inplace=True, limit_direction='both')
 
     df_station_date_current_year = df_station_date[ df_station_date.index.to_series().between(current_date.isoformat(), end_current_date.isoformat())]
 
@@ -499,7 +500,7 @@ for cod_station in list_cod_stations:
     df_cams_global.index = pd.to_datetime(df_cams_global.index)
 
     # Interpolation
-    df_cams_global['Concentration'] = df_cams_global['Concentration'].interpolate(method='linear')
+    df_cams_global['Concentration'].interpolate(method='linear', inplace=True, limit_direction='both')
 
     dict_values_cams_global[cod_station] = df_cams_global['Concentration'].values
 
