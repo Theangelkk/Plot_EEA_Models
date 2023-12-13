@@ -1,10 +1,7 @@
-# Taylor diagram EEA, CAMS Europe Reanalyses and Analyses
+# Pearson coefficient histograms [EEA vs CAMS EU Reanalyses and Analyses]
 
 # Libreries
-from http.client import REQUESTED_RANGE_NOT_SATISFIABLE
-from inspect import CORO_RUNNING
 import os
-from shlex import join
 import sys
 
 import numpy as np
@@ -14,13 +11,12 @@ import math
 import airbase
 import json
 from datetime import datetime, timedelta
-from matplotlib import rcParams
 import matplotlib.pyplot as plt
 import xarray as xr
 import matplotlib.dates as mdates
-import skill_metrics as sm
 import gc
 import warnings
+import matplotlib.gridspec as gridspec
 
 warnings.filterwarnings("ignore")
 
@@ -45,48 +41,58 @@ list_air_pollutant = ["CO", "NO2", "O3", "PM2.5", "PM10", "SO2"]
 list_numeric_model_cams_eu = ["chimere", "ensemble", "LOTOS-EUROS", "MOCAGE", "SILAM", "EURAD-IM", "DEHM"]
 list_freq_mode = ["hour", "day"]
 list_type_stations = ["all", "background", "industrial", "traffic", "rural", "suburban", "urban"]
-
 list_italy_region = [   "All_regions", "Abruzzo", "Basilicata", "Calabria", "Campania", "Emilia-Romagna", \
                         "Friuli Venezia Giulia", "Lazio", "Liguria", "Lombardia", "Marche", \
                         "Molise", "Piemonte", "Puglia", "Sardegna", "Sicilia", "Toscana", \
                         "Trentino-Alto Adige", "Umbria", "Valle d'Aosta", "Veneto"
                     ]
 
-parser = argparse.ArgumentParser(description='Taylor Diagram EEA - CAMS EU Reanalyses and Analyses')
+parser = argparse.ArgumentParser(description='Histgrams of Pearson Correlations EEA - CAMS Europe Reanalyses and Analyses')
 parser.add_argument('-a', '--air_pollutant', help='Air Pollutant CO - NO2 - O3 - PM2.5 - PM10 - SO2', choices=list_air_pollutant, required=True)
 parser.add_argument('-m_air_pol', '--m_air_pol', help='Model level for air pollution', type=int, required=True)
 parser.add_argument('-m_pm', '--m_pm', help='Model level for Particulate', type=int, required=True)
+parser.add_argument('-list_window_lenght', '--list_window_lenght', help='List of Window lenght', nargs="+", type=int, required=True)
+parser.add_argument('-previous_elems', '--previous_elems', help='Subseries with previous samples', action='store_true')
+parser.add_argument('-method_corr', '--method_corr', help='Method for computing correlation [pearson, kendall, spearman]', default='pearson', choices=list_methods_of_corr)
+parser.add_argument('-save_plot', '--save_plot', help='Save plot data', action='store_true')
+parser.add_argument('-no_overlap', '--no_overlap', help='No overlap window lenght', action='store_true')
 parser.add_argument('-freq_mode', '--freq_mode', help='Frequency mode: hour or day', choices=list_freq_mode, required=True)
 parser.add_argument('-co_ug_m^3', '--co_ug_m^3', help='CO in ug/m^3', action='store_true')
-parser.add_argument('-save_plot', '--save_plot', help='Save plot data', action='store_true')
+parser.add_argument('-list_cod_stations', '--list_cod_stations', help='List of code stations EEA', nargs='+', required=True)
+parser.add_argument('-s_date', '--start_date', metavar='YYYY-MM-DD HH:MM:SS', type=valid_datetime, required=True)
+parser.add_argument('-e_date', '--end_date', metavar='YYYY-MM-DD HH:MM:SS', type=valid_datetime, required=True)
 parser.add_argument('-type_stations', '--type_stations', help='Type of stations to consider ("all" for all stations)', choices=list_type_stations, required=True)
-parser.add_argument('-italy_region', '--italy_region', help='Italy region to analyses ("All_regions" for all Italy)', choices=list_italy_region, required=True)
-parser.add_argument('-filename_json_file', '--filename_json_file', help='Filename json file of EEA code stations to consider', type=str, required=True)
 args = vars(parser.parse_args())
 
 air_poll_selected = args["air_pollutant"]
+list_windows_lenght = args["list_window_lenght"]
+method_corr = args["method_corr"]
+list_cod_stations = args["list_cod_stations"]
+start_date_time_to_display = args["start_date"]
+end_date_time_to_display = args["end_date"]
 type_stations = args["type_stations"]
-filename_json_file = args["filename_json_file"]
-italy_region = args["italy_region"]
 
-if filename_json_file.endswith(".json") == False:
-    print("ERROR: filename_json_file is not a JSON file")
-    exit(-1)
+# If it is necessary to split the time series considering the
+# previous elements of i-th sample.
+# Example: window_lenght=3 --> [ABC] --> [[00A], [0AB], [ABC]]
+is_previous_elems = args["previous_elems"]
 
-start_date_time_to_display = datetime(int(filename_json_file.split("_")[0]), 12, 25, 0, 0)
-
-if filename_json_file.split("_")[1].isnumeric():
-    end_date_time_to_display = datetime(int(filename_json_file.split("_")[1]) + 1, 1, 1, 0, 0)
-else:
-    end_date_time_to_display = datetime(int(filename_json_file.split("_")[0]) + 1, 1, 1, 0, 0)
-
-filename_output = filename_json_file.split(".")[0]
+if is_previous_elems == False:
+    for windows_lenght in list_windows_lenght:
+        if windows_lenght % 2 == 0:
+            print("Window lenght must be odd!")
+            exit(-1)
 
 # If it asked the visualization of CO in ug/m^3
 co_in_ug_m3 = args["co_ug_m^3"]
 
 # If it is request to save the plot
 save_plot = args["save_plot"]
+
+# No overlap among time series partitions
+no_overlap = args["no_overlap"]
+
+filename_output = start_date_time_to_display.date().strftime("%Y-%m-%d") + "_" + end_date_time_to_display.date().strftime("%Y-%m-%d")
 
 # Model level 55: about 288 meters [CAMS Globale, GEOS CF, CAMS EU]
 # Model level 60: about 10 meters [CAMS Globale, CAMS EU]
@@ -103,30 +109,6 @@ else:
     model_level_pm = int(args["m_pm"])
 
 freq_mode = args["freq_mode"]
-
-# Limit values Directive 2008/50/EC
-dict_limit_air_pollutants = {}
-
-# NO2 limit value 1 hour: 18.0 ug/m3
-dict_limit_air_pollutants["NO2"] = 18.0
-
-# CO limit value for daily max 8 hours: 10.0 mg/m3
-dict_limit_air_pollutants["CO"] = 10.0
-
-# Limit CO in ug/m3
-dict_limit_air_pollutants["CO_ug_m3"] = dict_limit_air_pollutants["CO"] * 1000
-
-# SO2 limit value for 1 hour: 350.0 ug/m3
-dict_limit_air_pollutants["SO2"] = 350.0
-
-# O3 limit value for daily max 8 hours: 120.0 ug/m3
-dict_limit_air_pollutants["O3"] = 120.0
-
-# PM2.5 limit value for 1 year: 25.0 ug/m3
-dict_limit_air_pollutants["PM2.5"] = 15.0
-
-# PM10 limit value for 1 year: 50.0 ug/m3
-dict_limit_air_pollutants["PM10"] = 50.0
 
 # -------------- EEA paths --------------
 path_main_dir_EEA = os.environ['EEA_data']
@@ -145,13 +127,6 @@ path_dir_EEA_data = joinpath(path_dir_EEA_data, freq_mode)
 
 filename_EEA_csv = "IT_" + air_poll_selected + "_2013_2023_" + freq_mode + ".csv"
 path_file_data_EEA_csv = joinpath(path_dir_EEA_data, filename_EEA_csv)
-
-path_dir_json_files = joinpath(path_dir_EEA_data, "merged_json")
-filename_json_file = joinpath(path_dir_json_files, filename_json_file)
-
-if os.path.exists(filename_json_file) == False:
-    print("ERROR: Json file not exist")
-    exit(-1)
 
 # ------------ Information on CAMS EUROPE Reanalyses ------------
 dict_not_available_CAMS_EU_reanalyses = {}
@@ -292,39 +267,6 @@ def load_ds_datasets(current_date, cams_eu):
 
     return ds_cams_eu_reanalyses, ds_cams_eu_analyses
 
-def load_cod_stations(file_json, italy_region):
-
-    list_italy_region = [   "Abruzzo", "Basilicata", "Calabria", "Campania", "Emilia-Romagna", \
-                            "Friuli Venezia Giulia", "Lazio", "Liguria", "Lombardia", "Marche", \
-                            "Molise", "Piemonte", "Puglia", "Sardegna", "Sicilia", "Toscana", \
-                            "Trentino-Alto Adige", "Umbria", "Valle d'Aosta", "Veneto"
-                    ]
-
-    list_cod_stations = []
-
-    json_dict = None
-
-    with open(file_json) as json_file:
-        
-        json_dict = json.load(json_file)
-
-        if italy_region == "All_regions":
-            for region in list_italy_region:
-                for current_station in json_dict[region]["sorted_station_MDTs_min"]:
-
-                    if json_dict[region]["stations"][current_station]["Percentage_of_valid_data"] >= 75.0:
-                        list_cod_stations.append(current_station)
-        else:
-            for current_station in json_dict[italy_region]["sorted_station_MDTs_min"]:
-                if json_dict[italy_region]["stations"][current_station]["Percentage_of_valid_data"] >= 75.0:
-                        list_cod_stations.append(current_station)
-
-    if len(list_cod_stations) == 0:
-        print("ERROR: There are not EEA station for Italy region: " + italy_region)
-        exit(-1)
-
-    return list_cod_stations
-
 def initial_check(df_air_pol_metainfo, cod_station):
 
     global path_dir_EEA_data, start_date_time_to_display, end_date_time_to_display
@@ -333,7 +275,12 @@ def initial_check(df_air_pol_metainfo, cod_station):
     end_year = end_date_time_to_display.year
 
     df_station_info = df_air_pol_metainfo.filter(like=cod_station, axis=0)
-    station_region = df_station_info["Regione"].values[0]
+    
+    try:
+        station_region = df_station_info["Regione"].values[0]
+    except:
+        print("Code station " + cod_station + " not found")
+        exit(-2)
 
     for current_year in range(start_year, end_year):
         
@@ -364,7 +311,13 @@ def load_EEA_station(
     
     # Retrive the meta info of current station 
     df_station_info = df_air_pol_metainfo.filter(like=cod_station, axis=0)
-    station_region = df_station_info["Regione"].values[0]
+    
+    try:
+        station_region = df_station_info["Regione"].values[0]
+    except:
+        print("Code station " + cod_station + " not found")
+        exit(-2)
+
     lon_station = float(df_station_info["Longitude"].values[0])
     lat_station = float(df_station_info["Latitude"].values[0])
     
@@ -405,8 +358,11 @@ def load_EEA_station(
     df_all_datetime = df_all_datetime.set_index('DatetimeBegin')
 
     for index, row in df_station_date_current_year.iterrows():
-        df_all_datetime.loc[index]["Concentration"] = df_station_date_current_year.loc[index]["Concentration"] 
-    
+        try:
+            df_all_datetime.loc[index]["Concentration"] = df_station_date_current_year.loc[index]["Concentration"]
+        except:
+            df_all_datetime.loc[index]["Concentration"] = df_station_date_current_year.loc[index]["Concentration"].values[0]
+            
     # Interpolation of measures
     df_all_datetime['Concentration'].interpolate(method='linear', inplace=True, limit_direction='both')
 
@@ -417,77 +373,40 @@ def load_EEA_station(
     return df_all_datetime['Concentration'].values, lon_station, lat_station, station_region, area_station, type_station
 
 # ----------------------- PLOT -----------------------
-def plot_corr_lags_two_time_series( 
-                                    np_first_ts, np_second_ts, np_full_corr, np_lags, \
-                                    index_max_value_corr, title_first_ts, title_second_ts, PATH_DIR_PLOTS, \
-                                    area_station, type_station
-                                ):
-        
-    global start_date_time_to_display, end_date_time_to_display, delta, air_poll_selected, save_plot
+def plot_hist(  
+                    cams_eu, windows_lenght, method_corr, is_previous_elems, \
+                    list_corr_EEA_vs_cams_eu_reanalyses, list_corr_EEA_vs_cams_eu_analyses, \
+                    list_corr_cams_eu_reanalyses_vs_analyses, air_pol_selected, fig, inner
+    ):
 
-    if air_poll_selected == "CO" and co_in_ug_m3 == False:
-        title = air_poll_selected + " mg/m^3 " + cod_station + " " + area_station + " " + type_station + " " \
-                + start_date_time_to_display.isoformat() + " - " + end_date_time_to_display.isoformat()
-        unit = air_poll_selected + " mg/m^3"
-    else:
-        title = air_poll_selected + " μg/m^3 " + cod_station + " " + area_station + " " + type_station + " " \
-                + start_date_time_to_display.isoformat() + " - " + end_date_time_to_display.isoformat()
-        unit = air_poll_selected + " μg/m^3"
+    global  start_date_time_to_display, end_date_time_to_display
 
-    fig, (ax_first_ts, ax_second_ts, ax_lags) = plt.subplots(3, 1, figsize=(10, 8))
+    bins_range = np.arange(0.0, 1.0, 0.05).tolist()
 
-    plt.title(title)
+    count_inner_plot = 0
 
-    dates = mdates.drange(start_date_time_to_display, end_date_time_to_display, delta)
-    
-    # Plot of first time series
-    ax_first_ts.plot(dates, np_first_ts, label=title_first_ts, linewidth=1)
-    ax_first_ts.set_xlabel('Datetime')
-    ax_first_ts.set_ylabel(unit)
-    ax_first_ts.legend()
+    # ------------ PLOT EEA vs CAMS Europe Reanalyses ------------
+    ax_EEA_vs_cams_eu_reanalyses = plt.Subplot(fig, inner[count_inner_plot])
 
-    ax_first_ts.fmt_xdata = mdates.DateFormatter('% Y-% m-% d % H:% M:% S') 
-    ax_first_ts.xaxis_date()
+    ax_EEA_vs_cams_eu_reanalyses.hist(list_corr_EEA_vs_cams_eu_reanalyses, bins = bins_range)
+    ax_EEA_vs_cams_eu_reanalyses.set_title("EEA vs " + cams_eu + " R")
+    fig.add_subplot(ax_EEA_vs_cams_eu_reanalyses)
 
-    fig.tight_layout()
-    fig.autofmt_xdate()
+    # ------------ PLOT EEA vs CAMS Europe Analyses ------------
+    count_inner_plot += 1
+    ax_EEA_vs_cams_eu_analyses = plt.Subplot(fig, inner[count_inner_plot])
 
-    # Plot of second time series
-    ax_second_ts.plot(dates, np_second_ts, label=title_second_ts, linewidth=1)
-    ax_second_ts.set_xlabel('Datetime')
-    ax_second_ts.set_ylabel(unit)
-    ax_second_ts.legend()
+    ax_EEA_vs_cams_eu_analyses.hist(list_corr_EEA_vs_cams_eu_analyses, bins = bins_range)
+    ax_EEA_vs_cams_eu_analyses.set_title("EEA vs " + cams_eu + " A")
+    fig.add_subplot(ax_EEA_vs_cams_eu_analyses)
 
-    ax_second_ts.fmt_xdata = mdates.DateFormatter('% Y-% m-% d % H:% M:% S') 
-    ax_second_ts.xaxis_date()
+    # ------------ PLOT EEA vs CAMS EUROPA ------------
+    count_inner_plot += 1
+    ax_cams_eu_reanalyses_vs_analyses = plt.Subplot(fig, inner[count_inner_plot])
 
-    fig.tight_layout()
-    fig.autofmt_xdate()
-
-    # Plot of cross-correlation lags
-    best_lag_value = np_lags[index_max_value_corr]
-    ax_lags.plot(np_lags, np_full_corr, label="Full Cross-correlation lags", linewidth=1)
-    ax_lags.axvline(x = best_lag_value, color = 'r', label = "Best lag " + str(best_lag_value), linewidth=1)
-    ax_lags.set_xlabel('Lag')
-    ax_lags.legend()
-
-    fig.tight_layout()
-    fig.autofmt_xdate()
-
-    fig.tight_layout()
-    fig.autofmt_xdate()
-
-    if save_plot:
-        filename_fig = "Cross_corr_" + title_first_ts.replace(" ", "-") + "_" + title_second_ts.replace(" ", "_") + "_" + \
-                        start_date_time_to_display.date().strftime("%Y-%m-%d") + "_" + end_date_time_to_display.date().strftime("%Y-%m-%d") + ".png"
-        path_fig = joinpath(PATH_DIR_PLOTS, filename_fig)
-        plt.savefig(path_fig, dpi=300)
-    else:
-        plt.show()
-
-    plt.close()
-
-list_cod_stations = load_cod_stations(filename_json_file, italy_region)
+    ax_cams_eu_reanalyses_vs_analyses.hist(list_corr_cams_eu_reanalyses_vs_analyses, bins = bins_range)
+    ax_cams_eu_reanalyses_vs_analyses.set_title(cams_eu + " R vs A")
+    fig.add_subplot(ax_cams_eu_reanalyses_vs_analyses)
 
 previous_date = start_date_time_to_display
 current_date = start_date_time_to_display
@@ -686,6 +605,7 @@ for time in range(diff_dates_hours):
 
 # Last day
 if freq_mode == "day":
+    list_datetime_x.append(current_date.isoformat())
     for cod_station in list_cod_stations:
         for current_cams_eu in list_numeric_model_cams_eu:
             dict_all_cams_eu_reanalyses[current_cams_eu][cod_station].append(float(np.mean(dict_all_hours_of_current_day_cams_eu_reanalyses[current_cams_eu][cod_station])))
@@ -709,44 +629,119 @@ for cod_station in list_cod_stations:
             print("Error: NaN values present in CAMS Analyses: " + current_cams_eu)
             exit(-1)
 
-# ------------------ Full Cross-Correlation ------------------
-def write_file_corr(    
-                        list_bias, list_std, list_rmse, list_crmse, list_corr, \
-                        path_file_txt
-                    ):
-    
-    list_measures = ["Bias", "STD", "RMSE", "CRMSE", "Correlation"]
+# -------------- Functions of Correlation --------------
+def split_centered_list_sublists(n, iterable, fillvalue=0.0):
 
-    list_bias.pop(0)
-    list_std.pop(0)
-    list_rmse.pop(0)
-    list_corr.pop(0)
+    global no_overlap
 
-    dict_values = {
-        "Bias": list_bias,
-        "STD": list_std,
-        "RMSE": list_rmse,
-        "CRMSE": list_crmse,
-        "Correlation": list_corr
-    }
+    sublists = []
 
-    # For each row of the table: 
-    # Measure & chimere R & chiemere A & ensemble R & ensemble A & LOTOS R & LOTOS A & MOCAGE R & MOCAGE A & SILAM R 
-    # & SILAM A & EURAD R % EURAD A & DEHM R & DEHM A 
-    string_txt = ""
+    if no_overlap:
+        range_for = range(0, len(iterable), int(n/2))
+    else:
+        range_for = range(len(iterable))
 
-    with open(path_file_txt, "a") as file:
+    for i in range_for:
+        
+        current_sublist = []
 
-        for measure in list_measures:
-            string_txt += measure + " & "
+        # Example: n=3 [ABC] --> [[0AB], [ABC], [BC0]]
 
-            for elem in dict_values[measure]:
-                string_txt += str(elem) + " & "
+        # If we are in the head of the list:
+        # It is necessary to apply padding of (n-1)/2 elements
+
+        if i < (n-1)/2:
+            for k in range(int((n-1)/2)):
+                current_sublist.append(fillvalue)
+
+            for k in range(int((n-1)/2 + 1)):
+                current_sublist.append(iterable[i+k])
+        
+        # If we are in the last part of the list
+        elif int(i + (n-1)/2) >= len(iterable):
             
-            string_txt += " \\\\ \n"
+            for k in reversed(range(int((n-1)/2 + 1))):
+                current_sublist.append(iterable[i-k])
 
-        file.write(string_txt)
+            for k in range(i+1, len(iterable)):
+                current_sublist.append(iterable[k])
 
+            for k in range(n - len(current_sublist)):
+                current_sublist.append(fillvalue)
+        
+        # If we are in the middle part of the list
+        else:
+            for k in range(i-int((n-1)/2), i+int((n-1)/2) + 1):
+                current_sublist.append(iterable[k])
+        
+        sublists.append(current_sublist)
+    
+    return sublists
+
+def split_previous_list_sublists(n, iterable, fillvalue=0.0):
+
+    global no_overlap
+
+    sublists = []
+
+    if no_overlap:
+        range_for = range(0, len(iterable), int(n))
+    else:
+        range_for = range(len(iterable))
+
+    if n % 2 == 0:
+        print("n must be odd!")
+        exit(-1)
+
+    for i in range_for:
+        
+        current_sublist = []
+
+        # Example: n=3 [ABC] --> [[00A], [0AB], [ABC]]
+
+        # If we are in the head of the list:
+        # It is necessary to apply padding of (n-1) elements
+        if i < int(n-1):
+            for k in range(int((n-1)) - i):
+                current_sublist.append(fillvalue)
+
+            for k in range(0, i + 1):
+                current_sublist.append(iterable[k])
+        
+        # If we are in the middle or last part of the list
+        else:
+            for k in range(i - int((n-1)), i + 1):
+                current_sublist.append(iterable[k])
+        
+        sublists.append(current_sublist)
+    
+    return sublists
+
+def compute_correlation(x, y, method_corr):
+
+    list_corr = []
+
+    count_nan_values = 0
+
+    # For each partition of time series
+    for i in range(len(x)):
+
+        current_sublist_x = x[i]
+        current_sublist_y = y[i]
+
+        if np.std(np.array(current_sublist_x)) == 0 or np.std(np.array(current_sublist_y)) == 0:
+            count_nan_values += 1
+        else:
+            x_pd = pd.Series(current_sublist_x)
+            y_pd = pd.Series(current_sublist_y)
+
+            corr_current_sublist = x_pd.corr(y_pd, method=method_corr)
+        
+            list_corr.append(abs(corr_current_sublist))
+    
+    return list_corr, count_nan_values
+
+# ------------------ Pearson Correlation ------------------
 # Path of Plots
 PATH_DIR_PLOTS = os.environ['Plot_dir']
 
@@ -754,343 +749,160 @@ if PATH_DIR_PLOTS == "":
     print("Error: set the environmental variables of Plot_dir")
     exit(-1)
 
-if not os.path.exists(PATH_DIR_PLOTS):
-    os.mkdir(PATH_DIR_PLOTS)
-
 PATH_DIR_LATEX = joinpath(PATH_DIR_PLOTS, "Latex")
-
-if not os.path.exists(PATH_DIR_LATEX):
-    os.mkdir(PATH_DIR_LATEX)
-
-PATH_DIR_LATEX = joinpath(PATH_DIR_LATEX, "Taylor_and_Target_Diagram")
-
-if not os.path.exists(PATH_DIR_LATEX):
-    os.mkdir(PATH_DIR_LATEX)
-
 PATH_DIR_LATEX = joinpath(PATH_DIR_LATEX, air_poll_selected)
-
-if not os.path.exists(PATH_DIR_LATEX):
-    os.mkdir(PATH_DIR_LATEX)
-
 PATH_DIR_LATEX = joinpath(PATH_DIR_LATEX, freq_mode)
+PATH_DIR_LATEX = joinpath(PATH_DIR_LATEX, type_stations)
 
-if not os.path.exists(PATH_DIR_LATEX):
-    os.mkdir(PATH_DIR_LATEX)
+os.makedirs(PATH_DIR_LATEX, exist_ok=True)
 
-PATPATH_DIR_LATEXH_DIR_LATEX = joinpath(PATH_DIR_LATEX, type_stations)
-
-if not os.path.exists(PATH_DIR_LATEX):
-    os.mkdir(PATH_DIR_LATEX)
-
-PATH_DIR_LATEX = joinpath(PATH_DIR_LATEX, italy_region)
-
-if not os.path.exists(PATH_DIR_LATEX):
-        os.mkdir(PATH_DIR_LATEX)
-
-PATH_DIR_PLOTS = joinpath(PATH_DIR_PLOTS, "Taylor_and_Target_diagram_EEA_vs_CAMS_Reanalyses_Analyses_" + str(model_level_air_pollution) + "_pm_" + str(model_level_pm))
-
-if not os.path.exists(PATH_DIR_PLOTS):
-    os.mkdir(PATH_DIR_PLOTS)
-
+PATH_DIR_PLOTS = joinpath(PATH_DIR_PLOTS, method_corr + "_EEA_hist_corr_CAMS_EU_Reanalyses_Analyses_" + str(model_level_air_pollution) + "_pm_" + str(model_level_pm))
 PATH_DIR_PLOTS = joinpath(PATH_DIR_PLOTS, air_poll_selected)
-
-if not os.path.exists(PATH_DIR_PLOTS):
-    os.mkdir(PATH_DIR_PLOTS)
 
 if air_poll_selected == "CO" and co_in_ug_m3:
     PATH_DIR_PLOTS = joinpath(PATH_DIR_PLOTS, "CO_ug_m^3")
 elif air_poll_selected == "CO":
     PATH_DIR_PLOTS = joinpath(PATH_DIR_PLOTS, "CO_mg_m^3")
 
-if not os.path.exists(PATH_DIR_PLOTS):
-    os.mkdir(PATH_DIR_PLOTS)
-
 PATH_DIR_PLOTS = joinpath(PATH_DIR_PLOTS, freq_mode)
-
-if not os.path.exists(PATH_DIR_PLOTS):
-    os.mkdir(PATH_DIR_PLOTS)
-
 PATH_DIR_PLOTS = joinpath(PATH_DIR_PLOTS, type_stations)
 
-if not os.path.exists(PATH_DIR_PLOTS):
-        os.mkdir(PATH_DIR_PLOTS)
-
-PATH_DIR_PLOTS = joinpath(PATH_DIR_PLOTS, italy_region)
-
-if not os.path.exists(PATH_DIR_PLOTS):
-        os.mkdir(PATH_DIR_PLOTS)
+if no_overlap:
+    PATH_DIR_PLOTS = joinpath(PATH_DIR_PLOTS, "No_overlap")
+else:
+    PATH_DIR_PLOTS = joinpath(PATH_DIR_PLOTS, "overlap")
 
 PATH_DIR_PLOTS = joinpath(PATH_DIR_PLOTS, filename_output)
 
-if not os.path.exists(PATH_DIR_PLOTS):
-        os.mkdir(PATH_DIR_PLOTS)
+os.makedirs(PATH_DIR_PLOTS, exist_ok=True)
 
 filename_latex_file = filename_output + ".txt"
 path_latex_file = joinpath(PATH_DIR_LATEX, filename_latex_file)
 
-# [Mean_BIAS_EEA = 0, CAMS_EU_Reanalyses, CAMS_EU_Analyses]
-list_all_bias = [0.0]
+for windows_lenght in list_windows_lenght:
 
-# [Mean_STD_EEA, CAMS_EU_Reanalyses, CAMS_EU_Analyses]
-list_all_std = []
+    PATH_DIR_PLOTS_current = joinpath(PATH_DIR_PLOTS, "WL_" + str(windows_lenght))
 
-list_EEA_std = []
-for cod_station in list_cod_stations:
-    list_EEA_std.append(np.std(np.array(dict_values_EEA_station[cod_station])))
+    if not os.path.exists(PATH_DIR_PLOTS_current):
+        os.mkdir(PATH_DIR_PLOTS_current)
 
-list_all_std.append(np.mean(np.array(list_EEA_std)))
-
-# [Mean_RMSE_EEA = 0, CAMS_EU_Reanalyses, CAMS_EU_Analyses] or Root-Mean Square Deviation
-list_all_rmse = [0.0]
-
-# [Mean_Corr_EEA = 1, CAMS_EU_Reanalyses, CAMS_EU_Analyses]
-list_all_corr = [1.0]
-
-# Centered Root Mean Standard Deviation
-# [CAMS_EU_Reanalyses, CAMS_EU_Analyses]
-list_all_crmsd = []
-
-list_labels = []
-
-for current_cams_eu in list_numeric_model_cams_eu:
-
-    list_current_cams_eu_reanalyses_bias = []
-    list_current_cams_eu_reanalyses_std = []
-    list_current_cams_eu_reanalyses_rmse = []
-    list_current_cams_eu_reanalyses_corr = []
-    list_current_cams_eu_reanalyses_crmsd = []
-
-    list_current_cams_eu_analyses_bias = []
-    list_current_cams_eu_analyses_std = []
-    list_current_cams_eu_analyses_rmse = []
-    list_current_cams_eu_analyses_corr = []
-    list_current_cams_eu_analyses_crmsd = []
-
-    for cod_station in list_cod_stations:
-        
-        np_diff_EEA_cams_eu_reanalyses = np.array(dict_all_cams_eu_reanalyses[current_cams_eu][cod_station]) - \
-                                            np.array(dict_values_EEA_station[cod_station])
-        
-        np_diff_EEA_cams_eu_analyses = np.array(dict_all_cams_eu_analyses[current_cams_eu][cod_station]) - \
-                                            np.array(dict_values_EEA_station[cod_station])
-        
+    if is_previous_elems == False:
+        sublists_EEA_station = split_centered_list_sublists(windows_lenght, dict_values_EEA_station[cod_station], 0.0)
+    else:
+        sublists_EEA_station = split_previous_list_sublists(windows_lenght, dict_values_EEA_station[cod_station], 0.0)
     
-        bias_EEA_cams_eu_reanalyses = np.mean(np_diff_EEA_cams_eu_reanalyses) 
-        bias_EEA_cams_eu_analyses = np.mean(np_diff_EEA_cams_eu_analyses) 
+    fig = plt.figure(figsize=(20, 15))
+    outer = gridspec.GridSpec(2, 4, wspace=0.3, hspace=0.3)
 
-        list_current_cams_eu_reanalyses_bias.append(bias_EEA_cams_eu_reanalyses)
-        list_current_cams_eu_analyses_bias.append(bias_EEA_cams_eu_analyses)
+    count_outer_plot = 0
 
-        list_current_cams_eu_reanalyses_std.append(np.std(np.array(dict_all_cams_eu_reanalyses[current_cams_eu][cod_station])))
-        list_current_cams_eu_analyses_std.append(np.std(np.array(dict_all_cams_eu_analyses[current_cams_eu][cod_station])))
+    for current_cams_eu in list_numeric_model_cams_eu:
 
-        rmse_EEA_cams_eu_reanalyses = np.sqrt(np.mean((np_diff_EEA_cams_eu_reanalyses)**2))
-        rmse_EEA_cams_eu_analyses = np.sqrt(np.mean((np_diff_EEA_cams_eu_analyses)**2))
+        list_count_nan_values_corr = [-1,-1,-1]
 
-        list_current_cams_eu_reanalyses_rmse.append(rmse_EEA_cams_eu_reanalyses)
-        list_current_cams_eu_analyses_rmse.append(rmse_EEA_cams_eu_analyses)
-        
-        # Pearson correlation
-        if np.std(np.array(dict_values_EEA_station[cod_station])) == 0:
-            print("Standard deviation of EEA is equal to 0 --> Pearson correlation of Reanalyses and Analyses cannot be computed")
-        else:
-            if np.std(np.array(dict_all_cams_eu_reanalyses[current_cams_eu][cod_station])) == 0:
-                print("Standard deviation of CAMS EU Reanalyses is equal to 0 --> Pearson correlation cannot be computed")
+        list_corr_EEA_vs_cams_eu_reanalyses = []
+        list_corr_EEA_vs_cams_eu_analyses = []
+        list_corr_cams_eu_reanalyses_vs_analyses = []
+
+        for cod_station in list_cod_stations:
+
+            if is_previous_elems == False:
+                sublists_current_cams_eu_reanalyses = split_centered_list_sublists(windows_lenght, dict_all_cams_eu_reanalyses[current_cams_eu][cod_station], 0.0)
+                sublists_current_cams_eu_analyses = split_centered_list_sublists(windows_lenght, dict_all_cams_eu_analyses[current_cams_eu][cod_station], 0.0)
             else:
-                corr_EEA_cams_eu_reanalyses = abs(np.corrcoef(np.array(dict_all_cams_eu_reanalyses[current_cams_eu][cod_station]), np.array(dict_values_EEA_station[cod_station])))
-                list_current_cams_eu_reanalyses_corr.append(corr_EEA_cams_eu_reanalyses)
+                sublists_current_cams_eu_reanalyses = split_previous_list_sublists(windows_lenght, dict_all_cams_eu_reanalyses[current_cams_eu][cod_station], 0.0)
+                sublists_current_cams_eu_analyses = split_previous_list_sublists(windows_lenght, dict_all_cams_eu_analyses[current_cams_eu][cod_station], 0.0)
+    
+            # Compute correlation between EEA vs CAMS Europe Reanalyses
+            list_corr_EEA_vs_cams_eu_reanalyses = []
 
-            if np.std(np.array(dict_all_cams_eu_analyses[current_cams_eu][cod_station])) == 0:
-                print("Standard deviation of CAMS EU Analyses is equal to 0 --> Pearson correlation cannot be computed")
-            else:
-                corr_EEA_cams_eu_analyses = abs(np.corrcoef(np.array(dict_all_cams_eu_analyses[current_cams_eu][cod_station]), np.array(dict_values_EEA_station[cod_station])))
-                list_current_cams_eu_analyses_corr.append(corr_EEA_cams_eu_analyses)
-
-        crmsd_EEA_cams_eu_reanalyses = sm.centered_rms_dev(np.array(dict_all_cams_eu_reanalyses[current_cams_eu][cod_station]), np.array(dict_values_EEA_station[cod_station]))
-        crmsd_EEA_cams_eu_analyses = sm.centered_rms_dev(np.array(dict_all_cams_eu_analyses[current_cams_eu][cod_station]), np.array(dict_values_EEA_station[cod_station]))
-
-        list_current_cams_eu_reanalyses_crmsd.append(crmsd_EEA_cams_eu_reanalyses)
-        list_current_cams_eu_analyses_crmsd.append(crmsd_EEA_cams_eu_analyses)
-
-    list_all_bias.append(np.mean(np.array(list_current_cams_eu_reanalyses_bias)))
-    list_all_bias.append(np.mean(np.array(list_current_cams_eu_analyses_bias)))
-
-    list_all_std.append(np.mean(np.array(list_current_cams_eu_reanalyses_std)))
-    list_all_std.append(np.mean(np.array(list_current_cams_eu_analyses_std)))
-
-    list_all_rmse.append(np.mean(np.array(list_current_cams_eu_reanalyses_rmse)))
-    list_all_rmse.append(np.mean(np.array(list_current_cams_eu_analyses_rmse)))
-
-    list_all_corr.append(np.mean(np.array(list_current_cams_eu_reanalyses_corr)))
-    list_all_corr.append(np.mean(np.array(list_current_cams_eu_analyses_corr)))
-
-    list_all_crmsd.append(np.mean(np.array(list_current_cams_eu_reanalyses_crmsd)))
-    list_all_crmsd.append(np.mean(np.array(list_current_cams_eu_analyses_crmsd)))
-
-    list_labels.append(current_cams_eu + " Reanalyses")
-    list_labels.append(current_cams_eu + " Analyses")
-
-# Set the figure properties (optional)
-rcParams["figure.figsize"] = [12.0, 8.0]
-rcParams['lines.linewidth'] = 1     # line width for plots
-rcParams.update({'font.size': 10})  # font size of axes text
-
-# Close any previously open graphics windows
-# ToDo: fails to work within Eclipse
-plt.close('all')
-
-MARKERS = {
-    list_labels[0]: {
-        "labelColor": "k",
-        "symbol": "+",
-        "size": 9,
-        "faceColor": "r",
-        "edgeColor": "r",
-    },
-    list_labels[1]: {
-        "labelColor": "k",
-        "symbol": ".",
-        "size": 9,
-        "faceColor": "b",
-        "edgeColor": "b",
-    },
-    list_labels[2]: {
-        "labelColor": "k",
-        "symbol": "x",
-        "size": 9,
-        "faceColor": "g",
-        "edgeColor": "g",
-    },
-    list_labels[3]: {
-        "labelColor": "k",
-        "symbol": "s",
-        "size": 9,
-        "faceColor": "c",
-        "edgeColor": "c",
-    },
-    list_labels[4]: {
-        "labelColor": "k",
-        "symbol": "d",
-        "size": 9,
-        "faceColor": "m",
-        "edgeColor": "m",
-    },
-    list_labels[5]: {
-        "labelColor": "k",
-        "symbol": "^",
-        "size": 9,
-        "faceColor": "y",
-        "edgeColor": "y",
-    },
-    list_labels[6]: {
-        "labelColor": "k",
-        "symbol": "v",
-        "size": 9,
-        "faceColor": "r",
-        "edgeColor": "r",
-    },
-    list_labels[7]: {
-        "labelColor": "k",
-        "symbol": "p",
-        "size": 9,
-        "faceColor": "b",
-        "edgeColor": "b",
-    },
-    list_labels[8]: {
-        "labelColor": "k",
-        "symbol": "h",
-        "size": 9,
-        "faceColor": "g",
-        "edgeColor": "g",
-    },
-    list_labels[9]: {
-        "labelColor": "k",
-        "symbol": "*",
-        "size": 9,
-        "faceColor": "c",
-        "edgeColor": "c",
-    },
-    list_labels[10]: {
-        "labelColor": "k",
-        "symbol": "+",
-        "size": 9,
-        "faceColor": "m",
-        "edgeColor": "m",
-    },
-    list_labels[11]: {
-        "labelColor": "k",
-        "symbol": ".",
-        "size": 9,
-        "faceColor": "y",
-        "edgeColor": "y",
-    },
-    list_labels[12]: {
-        "labelColor": "k",
-        "symbol": "x",
-        "size": 9,
-        "faceColor": "r",
-        "edgeColor": "r",
-    },
-    list_labels[13]: {
-        "labelColor": "k",
-        "symbol": "s",
-        "size": 9,
-        "faceColor": "b",
-        "edgeColor": "b",
-    },
-}
-
-sm.taylor_diagram(  np.array(list_all_std), np.array(list_all_rmse), np.array(list_all_corr), \
-                    markers=MARKERS, markerLegend='on', titleOBS='EEA', \
-                    styleOBS='-', colOBS = 'r', markerobs = 'o',
-                    titleRMS='off', titleSTD ='on', titleCOR='on', tickRMSangle = 115,
-                ) 
-
-if save_plot:
-    filename_png = filename_output + "_taylor_diagram.png"
-    plt.savefig(joinpath(PATH_DIR_PLOTS, filename_png))
-else:
-    plt.show()
-
-plt.close('all')
-
-value_range = np.max(np.abs(np.array(list_all_bias))) * 2
-
-if value_range < 1.0:
-    range_ticks = np.arange(-1.0, 1.0, 0.10)
-
-    step_value_circle = 0.20
-    circle_list = np.arange(step_value_circle, 1.0, step_value_circle).tolist()
-else:
-    range_ticks = []
-    current_ticks = -value_range
-
-    n_step = 5
-
-    for i in range((2*n_step)-2):
-        range_ticks.append(round(current_ticks,2))
-        current_ticks += float(value_range/n_step)
-
-    range_ticks = np.array(range_ticks)
-
-    step_value_circle = round(float( (value_range/2.0) / 5), 2)
-    circle_list = np.arange(step_value_circle, (value_range/2.0), step_value_circle).tolist()
-
-sm.target_diagram(  np.array(list_all_bias), np.array(list_all_crmsd), np.array(list_all_rmse), 
-                    markers = MARKERS, markerLegend = 'on', 
-                    ticks=range_ticks, axismax=value_range*2, 
-                    circles=circle_list, circleLineSpec = 'b-.', circleLineWidth = 1.0,
-                    equalAxes='off'
-                )
-if save_plot:
-    filename_png = filename_output + "_target_diagram.png"
-    plt.savefig(joinpath(PATH_DIR_PLOTS, filename_png))
-else:
-    plt.show()
             
-plt.close('all')
+            list_corr_EEA_vs_cams_eu_reanalyses, count_nan_values_EEA_vs_cams_eu_reanalyses = compute_correlation(    
+                                                                                                    sublists_EEA_station, 
+                                                                                                    sublists_current_cams_eu_reanalyses, 
+                                                                                                    method_corr
+                                                                                                )
+            
+            list_count_nan_values_corr[0] = count_nan_values_EEA_vs_cams_eu_reanalyses
 
-write_file_corr(    
-                    list_all_bias, list_all_std, list_all_rmse, list_all_crmsd, \
-                    list_all_corr, path_latex_file
-                )   
+            # Compute correlation between EEA vs CAMS Europe Analyses
+            list_corr_EEA_vs_cams_eu_analyses = []
+
+
+            list_corr_EEA_vs_cams_eu_analyses, count_nan_values_EEA_vs_cams_eu_analyses = compute_correlation( 
+                                                                                                sublists_EEA_station, 
+                                                                                                sublists_current_cams_eu_analyses, 
+                                                                                                method_corr
+                                                                                            )
+
+            list_count_nan_values_corr[1] = count_nan_values_EEA_vs_cams_eu_analyses
+
+            # Compute correlation between CAMS Europa Reanalyses vs Analyses
+            list_corr_cams_eu_reanalyses_vs_analyses = []
+
+            list_corr_cams_eu_reanalyses_vs_analyses, count_nan_values_cams_eu_reanalyses_vs_analyses = compute_correlation(    
+                                                                                                            sublists_current_cams_eu_reanalyses, 
+                                                                                                            sublists_current_cams_eu_analyses, 
+                                                                                                            method_corr
+                                                                                                        )
+            
+            list_count_nan_values_corr[2] = count_nan_values_cams_eu_reanalyses_vs_analyses
+        
+        # --------------- SUBPLOT Current CAMS Europe ---------------
+        inner = gridspec.GridSpecFromSubplotSpec(3, 1, subplot_spec=outer[count_outer_plot], wspace=0.1, hspace=0.1)
+        
+        plot_hist(  
+                        current_cams_eu, windows_lenght, method_corr, is_previous_elems, \
+                        list_corr_EEA_vs_cams_eu_reanalyses, list_corr_EEA_vs_cams_eu_analyses, list_corr_cams_eu_reanalyses_vs_analyses, \
+                        air_poll_selected, fig, inner
+                )
+
+        count_outer_plot += 1
+
+        PATH_DIR_PLOTS_current_log_files = joinpath(PATH_DIR_PLOTS_current, "log")
+
+        if not os.path.exists(PATH_DIR_PLOTS_current_log_files):
+            os.mkdir(PATH_DIR_PLOTS_current_log_files)
+        
+        with open(joinpath(PATH_DIR_PLOTS_current_log_files, "log_nan.txt"), "w") as file:
+            file.write("NaN cross-correlations values of EEA vs CAMS Europe Reanalyses (" + str(current_cams_eu) + "):" + str(list_count_nan_values_corr[0]) + "\n")
+            file.write("NaN cross-correlations values of EEA vs CAMS Europe Analyses (" + str(current_cams_eu) + "):" + str(list_count_nan_values_corr[1]) + "\n")
+            file.write("NaN cross-correlations values of CAMS Europe Reanalyses vs Analyses (" + str(current_cams_eu) + "):" + str(list_count_nan_values_corr[2]) + "\n")
+    
+    if is_previous_elems: 
+        plt.title( 
+                air_poll_selected + " " + method_corr.upper() + \
+                    " Correlation " + start_date_time_to_display.strftime('%Y/%m/%d') + " - " + \
+                    end_date_time_to_display.strftime('%Y/%m/%d') + \
+                    " - WL: " + str(windows_lenght) + \
+                    " - Previous", y=-0.01
+                )
+    else:
+        plt.title( 
+                    air_poll_selected + " " + method_corr.upper() + \
+                    " Correlation " + start_date_time_to_display.strftime('%Y/%m/%d') + " - " + \
+                    end_date_time_to_display.strftime('%Y/%m/%d') + \
+                    " - WL: " + str(windows_lenght) + \
+                    " - Centered", y=-0.01
+                )
+    
+    fig.tight_layout()
+
+    if save_plot:
+        # ------------------ PLOT -----------------------
+        if is_previous_elems: 
+            filename_fig =  filename_output + "_" + method_corr.upper() + "_WL_" + str(windows_lenght) + "_previous.png"
+        else:
+            filename_fig =  filename_output + "_" + method_corr.upper() + "_WL_" + str(windows_lenght) + "_centered.png"
+
+            filename_fig =  "EEA_" + start_date_time_to_display.strftime('%Y-%m-%d') + "_" + end_date_time_to_display.strftime('%Y-%m-%d') + \
+                            method_corr.upper() + "_WL_" + str(windows_lenght) + "_centered.png"
+
+        path_fig = joinpath(PATH_DIR_PLOTS_current, filename_fig)
+        plt.savefig(path_fig, dpi=300)
+    else:
+        plt.show()
+
+    plt.close('all')
+
+    

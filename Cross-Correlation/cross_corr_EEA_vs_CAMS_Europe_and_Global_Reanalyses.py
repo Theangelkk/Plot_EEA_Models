@@ -56,6 +56,7 @@ parser.add_argument('-cams_eu', '--cams_eu', help='chimere - ensemble - EMEP - L
 parser.add_argument('-compute_air_dens', '--compute_air_density', help='Compute with formula the air density', action='store_true')
 parser.add_argument('-co_ug_m^3', '--co_ug_m^3', help='CO in ug/m^3', action='store_true')
 parser.add_argument('-save_plot', '--save_plot', help='Save plot data', action='store_true')
+parser.add_argument('-type_stations', '--type_stations', help='Type of stations to consider ("all" for all stations)', choices=list_type_stations, required=True)
 args = vars(parser.parse_args())
 
 cams_eu = args["cams_eu"]
@@ -63,6 +64,7 @@ air_poll_selected = args["air_pollutant"]
 list_cod_stations = args["list_cod_stations"]
 start_date_time_to_display = args["start_date"]
 end_date_time_to_display = args["end_date"]
+type_stations = args["type_stations"]
 
 # If it asked the visualization of CO in ug/m^3
 co_in_ug_m3 = args["co_ug_m^3"]
@@ -148,7 +150,7 @@ dict_start_time_numeric_models_cams_eu_reanalyses["EMEP"] = datetime(2018, 1, 1,
 dict_start_time_numeric_models_cams_eu_reanalyses["DEHM"] = datetime(2018, 1, 1, 0, 0)
 dict_start_time_numeric_models_cams_eu_reanalyses["chimere"] = datetime(2018, 1, 1, 0, 0)
 
-end_time_cams_eu_reanalyses = datetime(2020, 12, 31, 0, 0)
+end_time_cams_eu_reanalyses = datetime(2022, 12, 31, 0, 0)
 
 # ------------ Information on CAMS GLOBAL Reanalyses ------------
 not_available_cams_global_reanalyses = False
@@ -273,8 +275,11 @@ def load_EEA_station(
     df_all_datetime = df_all_datetime.set_index('DatetimeBegin')
 
     for index, row in df_station_date_current_year.iterrows():
-        df_all_datetime.loc[index]["Concentration"] = df_station_date_current_year.loc[index]["Concentration"] 
-    
+        try:
+            df_all_datetime.loc[index]["Concentration"] = df_station_date_current_year.loc[index]["Concentration"]
+        except:
+            df_all_datetime.loc[index]["Concentration"] = df_station_date_current_year.loc[index]["Concentration"].values[0]
+
     # Interpolation of measures
     df_all_datetime['Concentration'].interpolate(method='linear', inplace=True, limit_direction='both')
     
@@ -502,6 +507,7 @@ for time in range(diff_dates_hours):
 
 # Last day
 if freq_mode == "day":
+    list_datetime_x.append(current_date.isoformat())
     for cod_station in list_cod_stations:
         dict_values_cams_eu_reanalyses[cod_station].append(float(np.mean(dict_hours_of_current_day_cams_eu_reanalyses[cod_station])))
         dict_values_cams_global_reanalyses[cod_station].append(float(np.mean(dict_hours_of_current_day_cams_global_reanalyses[cod_station])))
@@ -522,46 +528,24 @@ for cod_station in list_cod_stations:
 
 # ------------------ Full Cross-Correlation ------------------
 def write_file_corr(    
-                        corr, lags, lag_max_value_corr, max_value_corr, \
-                        title1, title2, PATH_DIR
+                        cod_station, cams_eu, \
+                        lag_max_value_corr_EEA_vs_cams_eu_reanalyses, max_value_corr_EEA_vs_cams_eu_reanalyses, \
+                        lag_max_value_corr_EEA_vs_CAMS_global, max_value_corr_EEA_vs_CAMS_global, \
+                        lag_max_value_corr_cams_eu_vs_global_reanalyses, max_value_corr_cams_eu_vs_global_reanalyses, \
+                        path_file_txt
                     ):
         
-    global start_date_time_to_display, end_date_time_to_display
+    with open(path_file_txt, "a") as file:
 
-    filename =  title1.replace(" ", "_") + "_" + title2.replace(" ", "_") + "_" + \
-                start_date_time_to_display.date().strftime("%Y-%m-%d") + "_" + end_date_time_to_display.date().strftime("%Y-%m-%d") + ".txt"
-    path_file_log = joinpath(PATH_DIR, filename)
+        string_txt =    str(cod_station) + " & EEA & " + str(cams_eu) + " Europe Reanalyses & " + str(lag_max_value_corr_EEA_vs_cams_eu_reanalyses) + \
+                        " & " + str(round(max_value_corr_EEA_vs_cams_eu_reanalyses,2)) + " \\\\ \n"
+        string_txt +=   " & EEA & CAMS Global Reanalyses & " + str(lag_max_value_corr_EEA_vs_CAMS_global) + \
+                        " & " + str(round(max_value_corr_EEA_vs_CAMS_global,2)) + " \\\\ \n"
+        string_txt +=   " & " + str(cams_eu) + " Europe & " + str(cams_eu) + " Global & " + str(lag_max_value_corr_cams_eu_vs_global_reanalyses) + \
+                        " & " + str(round(max_value_corr_cams_eu_vs_global_reanalyses,2)) + " \\\\ \n"
+        string_txt += "\hline \n"
 
-    with open(path_file_log, "w") as file:
-        file.write( "Cross-Corrlation with lags between " + title1 + " and " + title2 + \
-                    " from " + start_date_time_to_display.isoformat() + " to " + end_date_time_to_display.isoformat() + "\n\n")
-        
-        file.write("Best lag " + str(lag_max_value_corr) + " : " + str(max_value_corr) + "\n\n")
-
-        for i in range(corr.shape[0]):
-            string_output = "Lag " + str(lags[i]) + ": " + str(corr[i]) + "\n"
-            file.write(string_output)
-
-def fill_row_csv(  
-                    cod_station, best_lag_EEA_cams_eu_reanalyses, best_lag_EEA_cams_global_reanalyses, \
-                    best_lag_cams_eu_and_global_reanalyses
-                ):
-
-    global  cams_eu, model_level_air_pollution, model_level_pm, air_poll_selected, \
-            start_date_time_to_display, end_date_time_to_display
-
-    if air_poll_selected == "PM2.5" or air_poll_selected == "PM10":
-        model_level = model_level_pm
-    else:
-        model_level = model_level_air_pollution
-
-    list_row = [    
-                    cod_station, cams_eu, model_level, start_date_time_to_display, end_date_time_to_display, \
-                    best_lag_EEA_cams_eu_reanalyses, best_lag_EEA_cams_global_reanalyses, \
-                    best_lag_cams_eu_and_global_reanalyses,
-                ]
-
-    return list_row
+        file.write(string_txt)
 
 # Path of Plots
 PATH_DIR_PLOTS = os.environ['Plot_dir']
@@ -573,10 +557,15 @@ if PATH_DIR_PLOTS == "":
 if not os.path.exists(PATH_DIR_PLOTS):
     os.mkdir(PATH_DIR_PLOTS)
 
-PATH_DIR_CSV = joinpath(PATH_DIR_PLOTS, "CSV")
+PATH_DIR_LATEX = joinpath(PATH_DIR_PLOTS, "Latex")
 
-if not os.path.exists(PATH_DIR_CSV):
-    os.mkdir(PATH_DIR_CSV)
+if not os.path.exists(PATH_DIR_LATEX):
+    os.mkdir(PATH_DIR_LATEX)
+
+PATH_DIR_LATEX = joinpath(PATH_DIR_LATEX, "Cross-Correlation_EEA_vs_CAMS_Europe" + str(cams_eu) + "_and_Global_Reanalyses")
+
+if not os.path.exists(PATH_DIR_LATEX):
+    os.mkdir(PATH_DIR_LATEX)
 
 PATH_DIR_PLOTS = joinpath(PATH_DIR_PLOTS, "Full_cross_corr_EEA_vs_CAMS_Europe_and_Global_Reanalyses_" + str(model_level_air_pollution) + "_pm_" + str(model_level_pm) + "_camsEU_" + str(list_numeric_model_cams_eu[idx_numeric_model_cams_eu]))
 
@@ -601,29 +590,24 @@ PATH_DIR_PLOTS = joinpath(PATH_DIR_PLOTS, freq_mode)
 if not os.path.exists(PATH_DIR_PLOTS):
     os.mkdir(PATH_DIR_PLOTS)
 
-PATH_DIR_PLOTS = joinpath(PATH_DIR_PLOTS, freq_mode)
+PATH_DIR_PLOTS = joinpath(PATH_DIR_PLOTS, type_stations)
 
 if not os.path.exists(PATH_DIR_PLOTS):
     os.mkdir(PATH_DIR_PLOTS)
 
+filename_latex_file = air_poll_selected + "_" + type_stations + "_" + start_date_time_to_display.date().strftime("%Y-%m-%d") + "_" + end_date_time_to_display.date().strftime("%Y-%m-%d") 
+path_latex_file_type_station = joinpath(PATH_DIR_LATEX, filename_latex_file + ".txt")
+
 for cod_station in list_cod_stations:
 
     area_cod_station = dict_code_stations[cod_station][3]
-    PATH_DIR_PLOTS_current = joinpath(PATH_DIR_PLOTS, area_cod_station)
-
     type_cod_station = dict_code_stations[cod_station][4]
-    PATH_DIR_PLOTS_current = joinpath(PATH_DIR_PLOTS, type_station)
 
     region_cod_station = dict_code_stations[cod_station][2]
     PATH_DIR_PLOTS_current = joinpath(PATH_DIR_PLOTS, region_cod_station)
 
     if not os.path.exists(PATH_DIR_PLOTS_current):
         os.mkdir(PATH_DIR_PLOTS_current)
-
-    PATH_DIR_CSV_current = joinpath(PATH_DIR_CSV, region_cod_station)
-
-    if not os.path.exists(PATH_DIR_CSV_current):
-        os.mkdir(PATH_DIR_CSV_current)
 
     PATH_DIR_PLOTS_current = joinpath(PATH_DIR_PLOTS_current, cod_station)
 
@@ -664,12 +648,6 @@ for cod_station in list_cod_stations:
                                     index_max_value_corr_EEA_vs_cams_eu_reanalyses, \
                                     "EEA", "CAMS EU Reanalyses", PATH_DIR_PLOTS_current
                                 )
-
-    write_file_corr(    
-                        full_corr_EEA_vs_cams_eu_reanalyses, lags_EEA_vs_cams_eu_reanalyses, \
-                        lag_max_value_corr_EEA_vs_cams_eu_reanalyses, max_value_corr_EEA_vs_cams_eu_reanalyses, \
-                        "EEA", "CAMS EU Reanalyses", PATH_DIR_PLOTS_current
-                    )
     
     # Full Cross-Correlation of EEA station vs CAMS Global Reanalyses
     full_corr_EEA_vs_CAMS_global_reanalyses = signal.correlate(np_values_EEA_station, np_values_CAMS_global_reanalyses)
@@ -689,12 +667,6 @@ for cod_station in list_cod_stations:
                                     "EEA", "CAMS Global Reanalyses", PATH_DIR_PLOTS_current
                                 )
     
-    write_file_corr(    
-                        full_corr_EEA_vs_CAMS_global_reanalyses, lags_EEA_vs_CAMS_global_reanalyses, \
-                        lag_max_value_corr_EEA_vs_CAMS_global_reanalyses, max_value_corr_EEA_vs_CAMS_global_reanalyses, \
-                        "EEA", "CAMS EU Analyses", PATH_DIR_PLOTS_current
-                    )
-
     # Full Cross-Correlation of CAMS EU Reanalyses vs CAMS Global Reanalyses
     full_corr_cams_eu_and_global_reanalyses = signal.correlate(np_values_CAMS_eu_reanalyses, np_values_CAMS_global_reanalyses)
     lags_cams_eu_and_global_reanalyses = signal.correlation_lags(len(np_values_CAMS_eu_reanalyses), len(np_values_CAMS_global_reanalyses))
@@ -712,37 +684,10 @@ for cod_station in list_cod_stations:
                                     index_max_value_corr_cams_eu_and_global_reanalyses, \
                                     "CAMS EU Reanalyses", "CAMS Global Reanalyses", PATH_DIR_PLOTS_current
                                 )
-
     write_file_corr(    
-                        full_corr_cams_eu_and_global_reanalyses, lags_cams_eu_and_global_reanalyses, \
+                        cod_station, cams_eu, \
+                        lag_max_value_corr_EEA_vs_cams_eu_reanalyses, max_value_corr_EEA_vs_cams_eu_reanalyses, \
+                        lag_max_value_corr_EEA_vs_CAMS_global_reanalyses, max_value_corr_EEA_vs_CAMS_global_reanalyses, \
                         lag_max_value_corr_cams_eu_and_global_reanalyses, max_value_corr_cams_eu_and_global_reanalyses, \
-                        "CAMS EU Reanalyses", "CAMS Global Reanalyses", PATH_DIR_PLOTS_current
+                        path_latex_file_type_station
                     )
-
-    # Write CSV file
-    filename_csv_file = joinpath(PATH_DIR_CSV_current, region_cod_station + ".csv")
-
-    list_current_station = fill_row_csv(   
-                                cod_station, lag_max_value_corr_EEA_vs_cams_eu_reanalyses, \
-                                lag_max_value_corr_EEA_vs_CAMS_global_reanalyses, \
-                                lag_max_value_corr_cams_eu_and_global_reanalyses,
-                            )
-        
-    columns = [ 
-                        "Cod_station", "Model CAMS EU/Global Reanalyses", "Model level", "Start_date", "End_date", \
-                        "Best_lag_EEA_CAMS_EU_Reanalyses", "Best_lag_EEA_CAMS_Global_Reanalyses", \
-                        "Best_lag_CAMS_EU_and_Global_Reanalyses", \
-            ]
-        
-    # Create the pandas DataFrame 
-    df_new = pd.DataFrame([list_current_station], columns=columns) 
-    
-    if os.path.exists(filename_csv_file):
-        df = pd.read_csv(filename_csv_file)
-        df = pd.concat([df, df_new], ignore_index=True)
-
-        # Write CSV file
-        df.to_csv(filename_csv_file)
-    else:
-        # Write CSV file
-        df_new.to_csv(filename_csv_file)

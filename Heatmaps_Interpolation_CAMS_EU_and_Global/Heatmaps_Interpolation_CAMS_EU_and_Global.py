@@ -1,12 +1,15 @@
-# Script for comparing the heatmaps of all numeric models
+# Script for comparing the heatmaps of CAMS Europe Reanalyses and Global Reanalyses
 # conda activate Plot_all_air_pol
 
 # Link: https://www.meteoblue.com/en/weather-maps/#map=particulateMatter~pm2.5~CAMSEU~sfc~none&coords=3.09/46.54/26.12
 
+from ast import arg
 import os
 from datetime import datetime, timedelta
+from pickle import FALSE
 import xarray as xr
 import numpy as np
+import math
 
 from mpl_toolkits.basemap import Basemap
 import matplotlib.pyplot as plt
@@ -75,6 +78,7 @@ if args["m_pm"] != 60 and args["m_pm"] != 55:
 else:
     model_level_pm = int(args["m_pm"])
 
+cams_eu = args["cams_eu"]
 fixed_air_density = not bool(args["compute_air_density"])
 
 air_pollutant_selected = list_air_pollutant[idx_air_pollutant_selected]
@@ -98,35 +102,29 @@ if args["delta_hours"] > 0:
 
 order = int(args["order_interp"])
 
-# Limit values WHO: https://www.who.int/news-room/feature-stories/detail/what-are-the-who-air-quality-guidelines
-
+# Limit values Directive 2008/50/EC
 dict_limit_air_pollutants = {}
 
-# NO2 limit value for 24 hours average: 25.0 ug/m3
-dict_limit_air_pollutants["NO2"] = 25.0
-dict_limit_air_pollutants["NO2"] = 75.0
+# NO2 limit value 1 hour: 18.0 ug/m3
+dict_limit_air_pollutants["NO2"] = 18.0 * 2
 
-# CO limit value for 24 hours average: 4.0 mg/m3
-dict_limit_air_pollutants["CO"] = 4.0
+# CO limit value for daily max 8 hours: 10.0 mg/m3
+dict_limit_air_pollutants["CO"] = 10.0 * 2
 
 # Limit CO in ug/m3
 dict_limit_air_pollutants["CO_ug_m3"] = dict_limit_air_pollutants["CO"] * 1000
 
-# SO2 limit value for 24 hours average: 40.0 ug/m3
-dict_limit_air_pollutants["SO2"] = 40.0
-dict_limit_air_pollutants["SO2"] = 120.0
+# SO2 limit value for 1 hour: 350.0 ug/m3
+dict_limit_air_pollutants["SO2"] = 350.0 * 2
 
-# O3 limit value for 8 hours average: 100.0 ug/m3
-dict_limit_air_pollutants["O3"] = 100.0
-dict_limit_air_pollutants["O3"] = 250.0
+# O3 limit value for daily max 8 hours: 120.0 ug/m3
+dict_limit_air_pollutants["O3"] = 120.0 * 2
 
-# PM2.5 limit value for 24 hours average: 15.0 ug/m3
-dict_limit_air_pollutants["PM2p5"] = 15.0
-dict_limit_air_pollutants["PM2p5"] = 60.0
+# PM2.5 limit value for 1 year: 25.0 ug/m3
+dict_limit_air_pollutants["PM2.5"] = 15.0 * 2
 
-# PM10 limit value for 24 hours average: 15.0 ug/m3
-dict_limit_air_pollutants["PM10"] = 15.0
-dict_limit_air_pollutants["PM10"] = 60.0
+# PM10 limit value for 1 year: 50.0 ug/m3
+dict_limit_air_pollutants["PM10"] = 50.0 * 2
 
 # Italy coordinates
 lat_italy_bnds, lon_italy_bnds = [32,50], [5,21]
@@ -136,33 +134,32 @@ def joinpath(rootdir, targetdir):
 
 def load_ds_datasets(current_date):
 
-    global  dict_start_time_numeric_models_cams_eu, numeric_model_selected, \
-            end_time_cams_eu, end_time_cams_global, end_time_geos_cf, air_pollutant_selected, \
-            DATADIR_CAMS_EU, DATADIR_CAMS_GLOBAL, DATADIR_GEOS_CF, \
-            not_available_cams_eu, not_available_cams_global, not_available_goes_cf, \
+    global  dict_start_time_numeric_models_cams_eu_reanalyses, numeric_model_selected, \
+            end_time_cams_eu_reanalyses, end_time_cams_global, air_pollutant_selected, \
+            DATADIR_CAMS_EU_reanalyses, DATADIR_CAMS_GLOBAL, \
+            not_available_cams_eu_reanalyses, not_available_cams_global, \
             list_idx_lat, list_idx_lon, lat_italy_bnds, lon_italy_bnds, co_in_ug_m3
     
-    ds_cams_eu = None
+    ds_cams_eu_reanalyses = None
     ds_cams_global = None
-    ds_geos_cf = None
 
     list_idx_lat = []
     list_idx_lon = []
 
-    if  current_date >= dict_start_time_numeric_models_cams_eu[numeric_model_selected] and \
-        current_date <= end_time_cams_eu:
-        DATADIR_CURRENT_MONTH_CAMS_EU = joinpath(DATADIR_CAMS_EU, str(current_date.year) + "-" + str(current_date.month).zfill(2))
-        file_netcdf_path_cams_eu = joinpath(DATADIR_CURRENT_MONTH_CAMS_EU, str(current_date.year) + "-" + str(current_date.month).zfill(2) + ".nc")
-        ds_cams_eu = xr.open_dataset(file_netcdf_path_cams_eu)
-        list_idx_lat.append(ds_cams_eu.indexes["lat"])
-        list_idx_lon.append(ds_cams_eu.indexes["lon"])
+    if  current_date >= dict_start_time_numeric_models_cams_eu_reanalyses[numeric_model_selected] and \
+        current_date <= end_time_cams_eu_reanalyses:
+        DATADIR_CURRENT_MONTH_CAMS_EU_reanalyses = joinpath(DATADIR_CAMS_EU_reanalyses, str(current_date.year) + "-" + str(current_date.month).zfill(2))
+        file_netcdf_path_cams_eu_reanalyses = joinpath(DATADIR_CURRENT_MONTH_CAMS_EU_reanalyses, str(current_date.year) + "-" + str(current_date.month).zfill(2) + ".nc")
+        ds_cams_eu_reanalyses = xr.open_dataset(file_netcdf_path_cams_eu_reanalyses)
+        list_idx_lat.append(ds_cams_eu_reanalyses.indexes["lat"])
+        list_idx_lon.append(ds_cams_eu_reanalyses.indexes["lon"])
 
         if co_in_ug_m3 and air_pollutant_selected == "CO":
-            ds_cams_eu["co"] *= 1000
+            ds_cams_eu_reanalyses["co"] *= 1000
 
-        not_available_cams_eu = False    
+        not_available_cams_eu_reanalyses = False    
     else:
-        not_available_cams_eu = True
+        not_available_cams_eu_reanalyses = True
         list_idx_lat.append([*range(lat_italy_bnds[0], lat_italy_bnds[1], 1)])
         list_idx_lon.append([*range(lon_italy_bnds[0], lon_italy_bnds[1], 1)])
         print("Dataset not available for CAMS EU " +  str(numeric_model_selected))
@@ -182,73 +179,60 @@ def load_ds_datasets(current_date):
         not_available_cams_global = True
         list_idx_lat.append([*range(lat_italy_bnds[0], lat_italy_bnds[1], 1)])
         list_idx_lon.append([*range(lon_italy_bnds[0], lon_italy_bnds[1], 1)])
-        print("Dataset not available for CAMS GLOABL")
+        print("Dataset not available for CAMS GLOBAL")
+              
+    return ds_cams_eu_reanalyses, ds_cams_global
 
-    if current_date >= start_time_geos_cf and current_date <= end_time_geos_cf and air_pollutant_selected != "PM10":
-        DATADIR_CURRENT_MONTH_GEOS_CF = joinpath(DATADIR_GEOS_CF, str(current_date.year) + "-" + str(current_date.month).zfill(2))
-        file_netcdf_path_geos_cf = joinpath(DATADIR_CURRENT_MONTH_GEOS_CF, str(current_date.year) + "-" + str(current_date.month).zfill(2) + ".nc")
-        ds_geos_cf = xr.open_dataset(file_netcdf_path_geos_cf)
-        list_idx_lat.append(ds_geos_cf.indexes["latitude"])
-        list_idx_lon.append(ds_geos_cf.indexes["longitude"])
-
-        if co_in_ug_m3 and air_pollutant_selected == "CO":
-            ds_geos_cf *= 1000
-
-        not_available_goes_cf = False
-    else:
-        not_available_goes_cf = True
-        list_idx_lat.append([*range(lat_italy_bnds[0], lat_italy_bnds[1], 1)])
-        list_idx_lon.append([*range(lon_italy_bnds[0], lon_italy_bnds[1], 1)])
-        print("Dataset not available for GEOS CF")
-
-    return ds_cams_eu, ds_cams_global, ds_geos_cf
-
-# ------------ Information on CAMS EUROPA ------------
-not_available_cams_eu = False
+# ------------ Information on CAMS EUROPE Reanalyses ------------
+not_available_cams_eu_reanalyses = False
 
 # Path of CAMS Europe
-path_main_dir_CAMS_Europe_data = os.environ['CAMS_Europe']
+path_main_dir_CAMS_Europe_data_reanalyses = os.environ['CAMS_Europe_Reanalyses']
 
-if path_main_dir_CAMS_Europe_data == "":
-    print("Error: set the environmental variables of CAMS_Europe")
+if path_main_dir_CAMS_Europe_data_reanalyses == "":
+    print("Error: set the environmental variables of CAMS_Europe_Reanalyses")
     exit(-1)
 
 if air_pollutant_selected == "PM2p5" or air_pollutant_selected == "PM10":
-    DATADIR_CAMS_EU = joinpath(path_main_dir_CAMS_Europe_data, "model_level_" + str(model_level_pm))
+    DATADIR_CAMS_EU_reanalyses = joinpath(path_main_dir_CAMS_Europe_data_reanalyses, "model_level_" + str(model_level_pm))
 else:
-    DATADIR_CAMS_EU = joinpath(path_main_dir_CAMS_Europe_data, "model_level_" + str(model_level_air_pollution))
+    DATADIR_CAMS_EU_reanalyses = joinpath(path_main_dir_CAMS_Europe_data_reanalyses, "model_level_" + str(model_level_air_pollution))
 
-DATADIR_CAMS_EU = joinpath(DATADIR_CAMS_EU, "italy_ext")
+DATADIR_CAMS_EU_reanalyses = joinpath(DATADIR_CAMS_EU_reanalyses, "italy_ext")
 
 numeric_model_selected = list_numeric_model_cams_eu[idx_numeric_model_cams_eu]
-DATADIR_CAMS_EU = joinpath(DATADIR_CAMS_EU, numeric_model_selected)
-DATADIR_CAMS_EU = joinpath(DATADIR_CAMS_EU, air_pollutant_selected)
+DATADIR_CAMS_EU_reanalyses = joinpath(DATADIR_CAMS_EU_reanalyses, numeric_model_selected)
 
-# Time resolution of CAMS Europe
-time_res_cams_eu = 1
+if air_pollutant_selected == "PM2.5":
+    DATADIR_CAMS_EU_reanalyses = joinpath(DATADIR_CAMS_EU_reanalyses, "PM2p5")
+else:
+    DATADIR_CAMS_EU_reanalyses = joinpath(DATADIR_CAMS_EU_reanalyses, air_pollutant_selected)
 
-dict_start_time_numeric_models_cams_eu = {}
-dict_start_time_numeric_models_cams_eu["SILAM"] = datetime(2018, 1, 1, 0, 0)
-dict_start_time_numeric_models_cams_eu["MOCAGE"] = datetime(2018, 1, 1, 0, 0)
-dict_start_time_numeric_models_cams_eu["MINNI"] = datetime(2020, 1, 1, 0, 0)
-dict_start_time_numeric_models_cams_eu["MATCH"] = datetime(2020, 1, 1, 0, 0)
-dict_start_time_numeric_models_cams_eu["LOTOS-EUROS"] = datetime(2018, 1, 1, 0, 0)
-dict_start_time_numeric_models_cams_eu["EURAD-IM"] = datetime(2018, 1, 1, 0, 0)
-dict_start_time_numeric_models_cams_eu["ensemble"] = datetime(2016, 1, 1, 0, 0)
-dict_start_time_numeric_models_cams_eu["EMEP"] = datetime(2018, 1, 1, 0, 0)
-dict_start_time_numeric_models_cams_eu["DEHM"] = datetime(2018, 1, 1, 0, 0)
-dict_start_time_numeric_models_cams_eu["chimere"] = datetime(2018, 1, 1, 0, 0)
+# Time resolution of CAMS Europe Reanalyses
+time_res_cams_eu_reanalyses = 1
 
-end_time_cams_eu = datetime(2020, 12, 31, 0, 0)
+dict_start_time_numeric_models_cams_eu_reanalyses = {}
+dict_start_time_numeric_models_cams_eu_reanalyses["SILAM"] = datetime(2018, 1, 1, 0, 0)
+dict_start_time_numeric_models_cams_eu_reanalyses["MOCAGE"] = datetime(2018, 1, 1, 0, 0)
+dict_start_time_numeric_models_cams_eu_reanalyses["MINNI"] = datetime(2020, 1, 1, 0, 0)
+dict_start_time_numeric_models_cams_eu_reanalyses["MATCH"] = datetime(2020, 1, 1, 0, 0)
+dict_start_time_numeric_models_cams_eu_reanalyses["LOTOS-EUROS"] = datetime(2018, 1, 1, 0, 0)
+dict_start_time_numeric_models_cams_eu_reanalyses["EURAD-IM"] = datetime(2018, 1, 1, 0, 0)
+dict_start_time_numeric_models_cams_eu_reanalyses["ensemble"] = datetime(2016, 1, 1, 0, 0)
+dict_start_time_numeric_models_cams_eu_reanalyses["EMEP"] = datetime(2018, 1, 1, 0, 0)
+dict_start_time_numeric_models_cams_eu_reanalyses["DEHM"] = datetime(2018, 1, 1, 0, 0)
+dict_start_time_numeric_models_cams_eu_reanalyses["chimere"] = datetime(2018, 1, 1, 0, 0)
 
-# ------------ Information on CAMS GLOBAL ------------
+end_time_cams_eu_reanalyses = datetime(2022, 12, 31, 0, 0)
+
+# ------------ Information on CAMS GLOBAL Reanalyses ------------
 not_available_cams_global = False
 
 # Path of CAMS_Global
-path_main_dir_CAMS_Global_data = os.environ['CAMS_Global']
+path_main_dir_CAMS_Global_data = os.environ['CAMS_Global_Reanalyses']
 
 if path_main_dir_CAMS_Global_data == "":
-    print("Error: set the environmental variables of CAMS_Global")
+    print("Error: set the environmental variables of CAMS_Global_Reanalyses")
     exit(-1)
 
 DATADIR_CAMS_GLOBAL = joinpath(path_main_dir_CAMS_Global_data, "datasets_model_level_" + str(model_level_air_pollution))
@@ -266,6 +250,7 @@ time_res_cams_global = 3
 start_time_cams_global = datetime(2003, 1, 1, 0, 0)
 end_time_cams_global = datetime(2022, 12, 1, 0, 0)
 
+'''
 # ------------ Informationi on GEOS CF ------------
 not_available_goes_cf = False
 
@@ -303,16 +288,17 @@ time_res_geos_cf = 1
 
 start_time_geos_cf = datetime(2018, 1, 1, 0, 0)
 end_time_geos_cf = datetime(2023, 9, 30, 0, 0)
+'''
 
 def plot_heatmap(lon_bounds, lat_bounds, list_idx_lat, list_idx_lon, list_air_pollutant_ds, vmax, title, savefig = False, path_fig="", dpi=300):
 
-    global  not_available_cams_eu, not_available_cams_global, not_available_goes_cf, \
+    global  not_available_cams_eu_reanalyses, not_available_cams_global, \
             list_numeric_model_cams_eu, idx_numeric_model_cams_eu
     
     fig = plt.figure()
 
     # ------------ PLOT CAMS GLOBAL ------------
-    ax_cams_global = fig.add_subplot(311)
+    ax_cams_global = fig.add_subplot(211)
     mp = Basemap(   
                     projection='merc',
                     llcrnrlon=lon_bounds[0],     # lower longitude
@@ -336,6 +322,7 @@ def plot_heatmap(lon_bounds, lat_bounds, list_idx_lat, list_idx_lon, list_air_po
 
     ax_cams_global.set_title(title + " CAMS GLOBAL (0,75° x 0,75°)")
 
+    '''
     # ------------ PLOT GEOS CF ------------
     ax_geos_cf = fig.add_subplot(312)
     mp = Basemap(   
@@ -360,9 +347,10 @@ def plot_heatmap(lon_bounds, lat_bounds, list_idx_lat, list_idx_lon, list_air_po
     mp.drawcountries()
 
     ax_geos_cf.set_title(title + " GEOS CF (0,25° x 0,25°)")
+    '''
 
-    # ------------ PLOT CAMS EUROPE ------------
-    ax_cams_eu = fig.add_subplot(313)
+    # ------------ PLOT CAMS EUROPE Reanalyses ------------
+    ax_cams_eu = fig.add_subplot(212)
     mp = Basemap(   
                     projection='merc',
                     llcrnrlon=lon_bounds[0],     # lower longitude
@@ -376,7 +364,7 @@ def plot_heatmap(lon_bounds, lat_bounds, list_idx_lat, list_idx_lon, list_air_po
     lon_cams_eu, lat_cams_eu = np.meshgrid(list_idx_lon[0], list_idx_lat[0])
     x_cams_eu, y_cams_eu = mp(lon_cams_eu,lat_cams_eu)
 
-    if not_available_cams_eu == False:
+    if not_available_cams_eu_reanalyses == False:
         c_scheme_cams_eu = mp.pcolor(x_cams_eu, y_cams_eu, np.squeeze(list_air_pollutant_ds[0].to_array()), cmap = 'jet', vmin=0.0, vmax=vmax)
         cbar = mp.colorbar(c_scheme_cams_eu, location='right', pad = '10%') # map information
 
@@ -385,7 +373,7 @@ def plot_heatmap(lon_bounds, lat_bounds, list_idx_lat, list_idx_lon, list_air_po
     mp.drawstates()
     mp.drawcountries()
 
-    ax_cams_eu.set_title(title + " CAMS EU " + str(list_numeric_model_cams_eu[idx_numeric_model_cams_eu]) + " (0,1° x 0,1°)")
+    ax_cams_eu.set_title(title + " CAMS EU Reanalyses " + str(list_numeric_model_cams_eu[idx_numeric_model_cams_eu]) + " (0,1° x 0,1°)")
 
     if savefig:
         plt.savefig(path_fig, dpi=dpi) #saves the image generated
@@ -393,16 +381,15 @@ def plot_heatmap(lon_bounds, lat_bounds, list_idx_lat, list_idx_lon, list_air_po
     plt.close()
 
 def plot_heatmap_0_75(  lon_bounds, lat_bounds, list_idx_lat, list_idx_lon, list_air_pollutant_ds, \
-                        vmax, title_cams_eu, title_geos_cf, title_cams_global, savefig = False, path_fig="", dpi=300
+                        vmax, title_cams_eu, title_cams_global, savefig = False, path_fig="", dpi=300
                     ):
 
-    global  not_available_cams_eu, not_available_cams_global, not_available_goes_cf, \
-            list_numeric_model_cams_eu, idx_numeric_model_cams_eu
+    global  not_available_cams_eu_reanalyses, not_available_cams_global, list_numeric_model_cams_eu, idx_numeric_model_cams_eu
     
     fig = plt.figure()
 
     # ------------ PLOT CAMS GLOBAL ------------
-    ax_cams_global = fig.add_subplot(311)
+    ax_cams_global = fig.add_subplot(211)
     mp = Basemap(   
                     projection='merc',
                     llcrnrlon=lon_bounds[0],     # lower longitude
@@ -426,6 +413,7 @@ def plot_heatmap_0_75(  lon_bounds, lat_bounds, list_idx_lat, list_idx_lon, list
 
     ax_cams_global.set_title(title_cams_global)
 
+    '''
     # ------------ PLOT GEOS CF ------------
     ax_geos_cf = fig.add_subplot(312)
     mp = Basemap(   
@@ -450,9 +438,10 @@ def plot_heatmap_0_75(  lon_bounds, lat_bounds, list_idx_lat, list_idx_lon, list
     mp.drawcountries()
 
     ax_geos_cf.set_title(title_geos_cf)
+    '''
 
-    # ------------ PLOT CAMS EUROPE ------------
-    ax_cams_eu = fig.add_subplot(313)
+    # ------------ PLOT CAMS EUROPE Reanalyses ------------
+    ax_cams_eu = fig.add_subplot(212)
     mp = Basemap(   
                     projection='merc',
                     llcrnrlon=lon_bounds[0],     # lower longitude
@@ -466,8 +455,8 @@ def plot_heatmap_0_75(  lon_bounds, lat_bounds, list_idx_lat, list_idx_lon, list
     lon_cams_eu, lat_cams_eu = np.meshgrid(list_idx_lon[0], list_idx_lat[0])
     x_cams_eu, y_cams_eu = mp(lon_cams_eu,lat_cams_eu)
 
-    if not_available_cams_eu == False:
-        c_scheme_cams_eu = mp.pcolor(x_cams_eu, y_cams_eu, np.squeeze(list_air_pollutant_ds[2]), cmap = 'jet', vmin=0.0, vmax=vmax)
+    if not_available_cams_eu_reanalyses == False:
+        c_scheme_cams_eu = mp.pcolor(x_cams_eu, y_cams_eu, np.squeeze(list_air_pollutant_ds[1]), cmap = 'jet', vmin=0.0, vmax=vmax)
         cbar = mp.colorbar(c_scheme_cams_eu, location='right', pad = '10%') # map information
 
     # consider this as the outline for the map that is to be created
@@ -485,12 +474,13 @@ def plot_heatmap_0_75(  lon_bounds, lat_bounds, list_idx_lat, list_idx_lon, list
 
     plt.close()
 
+'''
 def plot_heatmap_0_25(  
                         lon_bounds, lat_bounds, list_idx_lat, list_idx_lon, list_air_pollutant_ds, \
                         vmax, title_cams_eu, title_geos_cf, savefig = False, path_fig="", dpi=300
                     ):
 
-    global  not_available_cams_eu, not_available_cams_global, not_available_goes_cf, \
+    global  not_available_cams_eu_reanalyses, not_available_cams_global, \
             list_numeric_model_cams_eu, idx_numeric_model_cams_eu
     
     fig = plt.figure()
@@ -520,7 +510,7 @@ def plot_heatmap_0_25(
 
     ax_geos_cf.set_title(title_geos_cf)
 
-    # ------------ PLOT CAMS EUROPE ------------
+    # ------------ PLOT CAMS EUROPE Reanalyses ------------
     ax_cams_eu = fig.add_subplot(312)
     mp = Basemap(   
                     projection='merc',
@@ -535,7 +525,7 @@ def plot_heatmap_0_25(
     lon_cams_eu, lat_cams_eu = np.meshgrid(list_idx_lon[0], list_idx_lat[0])
     x_cams_eu, y_cams_eu = mp(lon_cams_eu,lat_cams_eu)
 
-    if not_available_cams_eu == False:
+    if not_available_cams_eu_reanalyses == False:
         c_scheme_cams_eu = mp.pcolor(x_cams_eu, y_cams_eu, np.squeeze(list_air_pollutant_ds[1]), cmap = 'jet', vmin=0.0, vmax=vmax)
         cbar = mp.colorbar(c_scheme_cams_eu, location='right', pad = '10%') # map information
 
@@ -553,12 +543,12 @@ def plot_heatmap_0_25(
         sleep(0.01)
 
     plt.close()
+'''
 
 # Downsampling function
 def downsampling_np_matrix(np_hr, shape_lr, order):
 
-    # It is require a flip operation on a 
-    # high-resolution image    
+    # It is require a flip operation on a high-resolution image    
     np_hr_flip = np.flip(np_hr, 0)
 
     np_lr = resize(np_hr_flip, shape_lr, order=order)  #order = 3 for cubic spline
@@ -569,22 +559,22 @@ def empty_dict_global_similarity():
 
     dict_global_info = {}
 
-    dict_global_info["CAMS_EU_vs_CAMS_Global"] = {}
-    dict_global_info["GEOS_CF_vs_CAMS_Global"] = {}
-    dict_global_info["CAMS_EU_vs_GEOS_CF"] = {}
+    dict_global_info["CAMS_EU_Reanalyses_vs_CAMS_Global"] = {}
+    #dict_global_info["GEOS_CF_vs_CAMS_Global"] = {}
+    #dict_global_info["CAMS_EU_vs_GEOS_CF"] = {}
 
     for key in dict_global_info:
-        dict_global_info[key]["MSE"] = 0.0
-        dict_global_info[key]["RMSE"] = 0.0
-        dict_global_info[key]["UQI"] = 0.0
-        dict_global_info[key]["ERGAS"] = 0.0
-        dict_global_info[key]["SCC"] = 0.0
-        dict_global_info[key]["RASE"] = 0.0
-        dict_global_info[key]["SAM"] = 0.0
-        dict_global_info[key]["VIF"] = 0.0
-        dict_global_info[key]["Pearson_coeff"] = 0.0
-        dict_global_info[key]["Perc_change"] = 0.0
-        dict_global_info[key]["Perc_change_abs"] = 0.0
+        dict_global_info[key]["MSE"] = []
+        dict_global_info[key]["RMSE"] = []
+        dict_global_info[key]["UQI"] = []
+        dict_global_info[key]["ERGAS"] = []
+        dict_global_info[key]["SCC"] = []
+        dict_global_info[key]["RASE"] = []
+        dict_global_info[key]["SAM"] = []
+        dict_global_info[key]["VIF"] = []
+        dict_global_info[key]["Pearson_coeff"] = []
+        dict_global_info[key]["Perc_change"] = []
+        dict_global_info[key]["Perc_change_abs"] = []
 
     return dict_global_info
 
@@ -592,17 +582,6 @@ def empty_dict_global_similarity():
 def compute_global_similarity(np_1, np_2):
     
     dict_current_sim = {}
-    dict_current_sim["MSE"] = 0.0
-    dict_current_sim["RMSE"] = 0.0
-    dict_current_sim["UQI"] = 0.0
-    dict_current_sim["ERGAS"] = 0.0
-    dict_current_sim["SCC"] = 0.0
-    dict_current_sim["RASE"] = 0.0
-    dict_current_sim["SAM"] = 0.0
-    dict_current_sim["VIF"] = 0.0
-    dict_current_sim["Pearson_coeff"] = 0.0
-    dict_current_sim["Perc_change"] = 0.0
-    dict_current_sim["Perc_change_abs"] = 0.0
 
     # It cannot be computed the PSNR and SSIM
 
@@ -614,7 +593,9 @@ def compute_global_similarity(np_1, np_2):
     dict_current_sim["RASE"] = rase(np_1, np_2)
     dict_current_sim["SAM"] = sam(np_1, np_2)
     dict_current_sim["VIF"] = vifp(np_1, np_2)
-    dict_current_sim["Pearson_coeff"] = np.corrcoef(np_1, np_2)[0,1]
+
+    dict_current_sim["Pearson_coeff"] = np.abs(np.corrcoef(np_1.flatten(), np_2.flatten()))[0,1]
+
     dict_current_sim["Perc_change"] = np.sum((((np_1 - np_2) * 100) / np_1)) / (np_1.shape[0] * np_1.shape[1])
     dict_current_sim["Perc_change_abs"] = np.sum(np.abs(((np_1 - np_2) * 100) / np_1)) / (np_1.shape[0] * np_1.shape[1])
 
@@ -642,7 +623,45 @@ if PATH_DIR_PLOTS == "":
 if not os.path.exists(PATH_DIR_PLOTS):
   os.mkdir(PATH_DIR_PLOTS)
 
-PATH_DIR_PLOTS = joinpath(PATH_DIR_PLOTS, "plots_all_air_model_" + str(model_level_air_pollution) + "_pm_" + str(model_level_pm) + "_camsEU_" + str(list_numeric_model_cams_eu[idx_numeric_model_cams_eu]))
+PATH_DIR_LATEX = joinpath(PATH_DIR_PLOTS, "Latex")
+
+if not os.path.exists(PATH_DIR_LATEX):
+  os.mkdir(PATH_DIR_LATEX)
+
+if fixed_air_density:
+    PATH_DIR_LATEX = joinpath(PATH_DIR_LATEX, "FIXED_AIR_DENSITY")
+else:
+    PATH_DIR_LATEX = joinpath(PATH_DIR_LATEX, "FORMULA_AIR_DENSITY")
+
+if not os.path.exists(PATH_DIR_LATEX):
+    os.mkdir(PATH_DIR_LATEX)
+
+PATH_DIR_LPATH_DIR_LATEXATEX = joinpath(PATH_DIR_LATEX, air_pollutant_selected)
+
+if not os.path.exists(PATH_DIR_LATEX):
+  os.mkdir(PATH_DIR_LATEX)
+
+if air_pollutant_selected == "CO" and co_in_ug_m3:
+    PATH_DIR_LATEX = joinpath(PATH_DIR_LATEX, "CO_ug_m^3")
+elif air_pollutant_selected == "CO":
+    PATH_DIR_LATEX = joinpath(PATH_DIR_LATEX, "CO_mg_m^3")
+
+if not os.path.exists(PATH_DIR_LATEX):
+  os.mkdir(PATH_DIR_LATEX)
+
+PATH_DIR_LATEX = joinpath(PATH_DIR_LATEX, "Order_interpolation_" + str(order))
+
+if not os.path.exists(PATH_DIR_LATEX):
+  os.mkdir(PATH_DIR_LATEX)
+
+PATH_DIR_LATEX = joinpath(PATH_DIR_LATEX, "Delta_h_" + str(delta_time_hours))
+
+if not os.path.exists(PATH_DIR_LATEX):
+  os.mkdir(PATH_DIR_LATEX)
+
+path_latex_file_global_similarity_all_period = joinpath(PATH_DIR_LATEX, start_date_time_to_display.date().strftime("%Y-%m-%d") + "_" + end_date_time_to_display.date().strftime("%Y-%m-%d") + ".txt")
+
+PATH_DIR_PLOTS = joinpath(PATH_DIR_PLOTS, "Heatmap_Interp_CAMS_EU_" + str(cams_eu) + "_vs_Global_" + str(model_level_air_pollution) + "_pm_" + str(model_level_pm))
 
 if not os.path.exists(PATH_DIR_PLOTS):
   os.mkdir(PATH_DIR_PLOTS)
@@ -655,10 +674,7 @@ else:
 if not os.path.exists(PATH_DIR_PLOTS):
     os.mkdir(PATH_DIR_PLOTS)
 
-if air_pollutant_selected == "PM2p5":
-    PATH_DIR_PLOTS = joinpath(PATH_DIR_PLOTS, air_pollutant_pm25_geos_cf)
-else: 
-    PATH_DIR_PLOTS = joinpath(PATH_DIR_PLOTS, air_pollutant_selected)
+PATH_DIR_PLOTS = joinpath(PATH_DIR_PLOTS, air_pollutant_selected)
 
 if not os.path.exists(PATH_DIR_PLOTS):
   os.mkdir(PATH_DIR_PLOTS)
@@ -676,16 +692,21 @@ PATH_DIR_PLOTS = joinpath(PATH_DIR_PLOTS, "Order_interpolation_" + str(order))
 if not os.path.exists(PATH_DIR_PLOTS):
   os.mkdir(PATH_DIR_PLOTS)
 
-idx_cams_eu = 0
+PATH_DIR_PLOTS = joinpath(PATH_DIR_PLOTS, "Delta_h_" + str(delta_time_hours))
+
+if not os.path.exists(PATH_DIR_PLOTS):
+  os.mkdir(PATH_DIR_PLOTS)
+
+idx_cams_eu_reanalyses = 0
 idx_cams_global = 0
-idx_geos_cf = 0
+#idx_geos_cf = 0
 
 previous_date = start_date_time_to_display
 current_date = start_date_time_to_display
 
-ds_cams_eu = None
+ds_cams_eu_reanalyses = None
 ds_cams_global = None
-ds_geos_cf = None
+#ds_geos_cf = None
 
 list_idx_lat = []
 list_idx_lon = []
@@ -693,14 +714,14 @@ list_idx_lon = []
 list_idx_0_75_lat = []
 list_idx_0_75_lon = []
 
-list_idx_0_25_lat = []
-list_idx_0_25_lon = []
+#list_idx_0_25_lat = []
+#list_idx_0_25_lon = []
 
 diff_dates = end_date_time_to_display - start_date_time_to_display
 diff_dates_hours = int(diff_dates.total_seconds() / (60*60*delta_time_hours))
 delta = timedelta(hours=delta_time_hours)
 
-ds_cams_eu, ds_cams_global, ds_geos_cf = load_ds_datasets(current_date)
+ds_cams_eu_reanalyses, ds_cams_global = load_ds_datasets(current_date)
 
 PATH_CURRENT_MONTH_DIR_PLOTS = joinpath(PATH_DIR_PLOTS, str(current_date.year) + "-" + str(current_date.month).zfill(2))
 
@@ -712,19 +733,11 @@ path_json_file_global_similarity_all_period = joinpath(PATH_DIR_PLOTS, "All_peri
 dict_global_similarity_current_month = empty_dict_global_similarity()
 dict_global_similarity_all_period = empty_dict_global_similarity()
 
-count_cams_eu_cams_global = 0
-count_geos_cf_cams_global = 0
-count_cams_eu_geos_cf = 0
-
-count_cams_eu_cams_global_all = 0
-count_geos_cf_cams_global_all = 0
-count_cams_eu_geos_cf_all = 0
-
 for time in range(diff_dates_hours):
     
     # The month is changed
     if previous_date.year != current_date.year or previous_date.month != current_date.month:
-        ds_cams_eu, ds_cams_global, ds_geos_cf = load_ds_datasets(current_date)
+        ds_cams_eu_reanalyses, ds_cams_global = load_ds_datasets(current_date)
 
         PATH_CURRENT_MONTH_DIR_PLOTS = joinpath(PATH_DIR_PLOTS, str(current_date.year) + "-" + str(current_date.month).zfill(2))
 
@@ -734,19 +747,8 @@ for time in range(diff_dates_hours):
         # Save dict_global_similarity_current_month
         for key in dict_global_similarity_current_month:
             
-            if key == "CAMS_EU_vs_CAMS_Global":
-                count = count_cams_eu_cams_global
-            elif key == "GEOS_CF_vs_CAMS_Global":
-                count = count_geos_cf_cams_global
-            else:
-                count = count_cams_eu_geos_cf
-
             for key_1 in dict_global_similarity_current_month[key]:
-                dict_global_similarity_current_month[key][key_1] /= count
-
-        count_cams_eu_cams_global = 0
-        count_geos_cf_cams_global = 0
-        count_cams_eu_geos_cf = 0
+                dict_global_similarity_current_month[key][key_1] = np.mean(np.array(dict_global_similarity_current_month[key][key_1]))
 
         with open(path_json_file_global_similarity_current_month, 'w') as json_file:
             json_dumps_str = json.dumps(dict_global_similarity_current_month, indent=4)
@@ -756,36 +758,40 @@ for time in range(diff_dates_hours):
         dict_global_similarity_current_month = empty_dict_global_similarity()
 
     # Loading datasets
-    if not_available_cams_eu == False:
-        ds_current_date_cams_eu = ds_cams_eu.sel(time=current_date.isoformat())
+    if not_available_cams_eu_reanalyses == False:
+        ds_current_date_cams_eu_reanalyses = ds_cams_eu_reanalyses.sel(time=current_date.isoformat())
     else:
-        ds_current_date_cams_eu = None
+        ds_current_date_cams_eu_reanalyses = None
 
     if (time*delta_time_hours) % time_res_cams_global == 0 and not_available_cams_global == False:
         ds_current_date_cams_global = ds_cams_global.sel(time=current_date.isoformat())
     else:
         ds_current_date_cams_global = None
     
+    '''
     if not_available_goes_cf == False:
         ds_current_date_geos_cf = ds_geos_cf.sel(datetime=current_date.isoformat())
         ds_current_date_geos_cf = ds_current_date_geos_cf.rename({'__xarray_dataarray_variable__': air_pollutant_selected.lower()})
     else:
         ds_current_date_geos_cf = None
+    '''
 
     print("Current date (" + air_pollutant_selected + "): " + current_date.isoformat())
-    print("CAMS EU: " + str(not not_available_cams_eu))
+    print("CAMS EU: " + str(not not_available_cams_eu_reanalyses))
     print("CAMS GLOBAL: " + str(not not_available_cams_global))
-    print("GEOS-CF: " + str(not not_available_goes_cf))
 
-    if not_available_cams_eu == False:
-        np_current_date_air_pol_cams_eu = ds_current_date_cams_eu[air_pollutant_selected.lower()].values
+    if not_available_cams_eu_reanalyses == False:
+        np_current_date_air_pol_cams_eu_reanalyses = ds_current_date_cams_eu_reanalyses[air_pollutant_selected.lower()].values
 
+    '''
     if not_available_goes_cf == False:
         np_current_date_air_pol_geos_cf = ds_current_date_geos_cf[air_pollutant_selected.lower()].values.T
+    '''
     
     if not_available_cams_global == False and ds_current_date_cams_global is not None:
         np_current_date_air_pol_cams_global = ds_current_date_cams_global[air_pollutant_selected.lower()].values
 
+    '''
     # Downsampling CAMS EU --> GEOS CF
     if not_available_cams_eu == False and not_available_goes_cf == False:
         np_current_date_air_pol_cams_eu_geos_cf = downsampling_np_matrix(   
@@ -794,25 +800,21 @@ for time in range(diff_dates_hours):
                                                                             order
                                                                         )
 
-        count_cams_eu_geos_cf += 1
-        count_cams_eu_geos_cf_all += 1
-
     else:
         np_current_date_air_pol_cams_eu_geos_cf = np.zeros_like(np_current_date_air_pol_geos_cf)
+    '''
 
     # Downsampling CAMS EU --> CAMS GLOBAL
-    if not_available_cams_eu == False and not_available_cams_global == False and ds_current_date_cams_global is not None:
+    if not_available_cams_eu_reanalyses == False and not_available_cams_global == False and ds_current_date_cams_global is not None:
         np_current_date_air_pol_cams_eu_cams_global = downsampling_np_matrix(   
-                                                                                np_current_date_air_pol_cams_eu, 
+                                                                                np_current_date_air_pol_cams_eu_reanalyses, 
                                                                                 np_current_date_air_pol_cams_global.shape,
                                                                                 order
                                                                             )
-        
-        count_cams_eu_cams_global += 1
-        count_cams_eu_cams_global_all += 1
     else:
         np_current_date_air_pol_cams_eu_cams_global = np.zeros_like(np_current_date_air_pol_cams_global)
-        
+    
+    '''
     # Downsampling GEOS CF --> CAMS GLOBAL
     if not_available_goes_cf == False and not_available_cams_global == False and ds_current_date_cams_global is not None:
         np_current_date_air_pol_geos_cf_cams_global = downsampling_np_matrix(   
@@ -820,11 +822,9 @@ for time in range(diff_dates_hours):
                                                                                 np_current_date_air_pol_cams_global.shape,
                                                                                 order
                                                                             )
-        
-        count_geos_cf_cams_global += 1
-        count_geos_cf_cams_global_all += 1
     else:
         np_current_date_air_pol_geos_cf_cams_global = np.zeros_like(np_current_date_air_pol_cams_global)
+    '''
     
     # -------------------- Visualization of Heatmap --------------------
     max_value_dict = dict_limit_air_pollutants[air_pollutant_selected]
@@ -841,50 +841,59 @@ for time in range(diff_dates_hours):
 
     title += current_date.isoformat()
 
-    title_0_25_cams_eu =  title + " CAMS EU " + str(list_numeric_model_cams_eu[idx_numeric_model_cams_eu]) + " (0,25° x 0,25°)"
-    title_0_25_geos_cf =  title + " GEOS CF (0,25° x 0,25°)"
+    #title_0_25_cams_eu =  title + " CAMS EU " + str(list_numeric_model_cams_eu[idx_numeric_model_cams_eu]) + " (0,25° x 0,25°)"
+    #title_0_25_geos_cf =  title + " GEOS CF (0,25° x 0,25°)"
 
     title_0_75_cams_eu =  title + " CAMS EU " + str(list_numeric_model_cams_eu[idx_numeric_model_cams_eu]) + " (0,75° x 0,75°)"
-    title_0_75_geos_cf =  title + " GEOS CF (0,75° x 0,75°)"
+    #title_0_75_geos_cf =  title + " GEOS CF (0,75° x 0,75°)"
     title_0_75_cams_global =  title + " CAMS GLOBAL (0,75° x 0,75°)"
 
     path_img_org = joinpath(PATH_CURRENT_MONTH_DIR_PLOTS, current_date.strftime("%Y-%m-%dT%H-%M-%S") + "_org.jpg")
-    path_img_0_25 = joinpath(PATH_CURRENT_MONTH_DIR_PLOTS, current_date.strftime("%Y-%m-%dT%H-%M-%S") + "_0_25.jpg")
+    #path_img_0_25 = joinpath(PATH_CURRENT_MONTH_DIR_PLOTS, current_date.strftime("%Y-%m-%dT%H-%M-%S") + "_0_25.jpg")
     path_img_0_75 = joinpath(PATH_CURRENT_MONTH_DIR_PLOTS, current_date.strftime("%Y-%m-%dT%H-%M-%S") + "_0_75.jpg")
 
     if len(list_idx_0_75_lat) == 0:
         list_idx_0_75_lat.append(ds_current_date_cams_global.indexes["latitude"])
         list_idx_0_75_lon.append(ds_current_date_cams_global.indexes["longitude"])
     
+    '''
     if len(list_idx_0_25_lat) == 0:
         list_idx_0_25_lat.append(ds_current_date_geos_cf.indexes["latitude"])
         list_idx_0_25_lon.append(ds_current_date_geos_cf.indexes["longitude"])
+    '''
 
-    list_air_pollutant_ds = [ds_current_date_cams_eu, ds_current_date_cams_global, ds_current_date_geos_cf]
+    #list_air_pollutant_ds = [ds_current_date_cams_eu, ds_current_date_cams_global, ds_current_date_geos_cf]
+    list_air_pollutant_ds = [ds_current_date_cams_eu_reanalyses, ds_current_date_cams_global]
     
+    '''
     # All methods in 0,25° x 0,25° --> GEOS CF
     list_air_pollutant_0_25_ds = [
                                     ds_current_date_geos_cf.to_array(), 
                                     np_current_date_air_pol_cams_eu_geos_cf,
                                 ]
+    '''
     
     # All methods in 0,75° x 0,75° --> CAMS GLOBAL
     if ds_current_date_cams_global is not None:
         np_0_75_cams_global = ds_current_date_cams_global.to_array()
-    else:
-        np_0_75_cams_global = None
 
-    list_air_pollutant_0_75_ds = [
+        list_air_pollutant_0_75_ds = [
                                     np_0_75_cams_global,
-                                    np_current_date_air_pol_geos_cf_cams_global,
                                     np_current_date_air_pol_cams_eu_cams_global
                                 ]
 
-    plot_heatmap(lon_italy_bnds, lat_italy_bnds, list_idx_lat, list_idx_lon, list_air_pollutant_ds, max_value_dict, title, savefig = True, path_fig=path_img_org, dpi=300)
-    plot_heatmap_0_25(  lon_italy_bnds, lat_italy_bnds, list_idx_0_25_lat, list_idx_0_25_lon, list_air_pollutant_0_25_ds, max_value_dict, \
-                        title_0_25_cams_eu, title_0_25_geos_cf, savefig = True, path_fig=path_img_0_25, dpi=300)
-    plot_heatmap_0_75(  lon_italy_bnds, lat_italy_bnds, list_idx_0_75_lat, list_idx_0_75_lon, list_air_pollutant_0_75_ds, max_value_dict, \
-                        title_0_75_cams_eu, title_0_75_geos_cf, title_0_75_cams_global, savefig = True, path_fig=path_img_0_75, dpi=300)
+        plot_heatmap(lon_italy_bnds, lat_italy_bnds, list_idx_lat, list_idx_lon, list_air_pollutant_ds, max_value_dict, title, savefig = True, path_fig=path_img_org, dpi=300)
+        
+        '''
+        plot_heatmap_0_25(  lon_italy_bnds, lat_italy_bnds, list_idx_0_25_lat, list_idx_0_25_lon, list_air_pollutant_0_25_ds, max_value_dict, \
+                            title_0_25_cams_eu, title_0_25_geos_cf, savefig = True, path_fig=path_img_0_25, dpi=300)
+        '''
+
+        plot_heatmap_0_75(  lon_italy_bnds, lat_italy_bnds, list_idx_0_75_lat, list_idx_0_75_lon, list_air_pollutant_0_75_ds, max_value_dict, \
+                            title_0_75_cams_eu, title_0_75_cams_global, savefig = True, path_fig=path_img_0_75, dpi=300)
+
+    else:
+        np_0_75_cams_global = None
 
     # ---------------------------------------- Similarity ----------------------------------------
     # Link: https://towardsdatascience.com/measuring-similarity-in-two-images-using-python-b72233eb53c6
@@ -892,15 +901,24 @@ for time in range(diff_dates_hours):
     # ------------- 0,75° x 0,75° --> CAMS GLOBAL -------------
 
     # CAMS EU vs CAMS Global
-    if not_available_cams_eu == False and not_available_cams_global == False and ds_current_date_cams_global is not None:
+    if not_available_cams_eu_reanalyses == False and not_available_cams_global == False and ds_current_date_cams_global is not None:
         dict_cams_eu_vs_cams_global_current_datetime = compute_global_similarity(   np_current_date_air_pol_cams_eu_cams_global, \
                                                                                     np_current_date_air_pol_cams_global
                                                                                 )
         
-        for key in dict_global_similarity_current_month["CAMS_EU_vs_CAMS_Global"]:
-            dict_global_similarity_current_month["CAMS_EU_vs_CAMS_Global"][key] += dict_cams_eu_vs_cams_global_current_datetime[key]
-            dict_global_similarity_all_period["CAMS_EU_vs_CAMS_Global"][key] += dict_cams_eu_vs_cams_global_current_datetime[key]
+        for key in dict_global_similarity_current_month["CAMS_EU_Reanalyses_vs_CAMS_Global"]:
+            
+            can_append = True
 
+            if key != "Perc_change" and key != "Perc_change_abs":
+                if math.isnan(dict_cams_eu_vs_cams_global_current_datetime[key]):
+                    can_append = False
+
+            if can_append:
+                dict_global_similarity_current_month["CAMS_EU_Reanalyses_vs_CAMS_Global"][key].append(dict_cams_eu_vs_cams_global_current_datetime[key])
+                dict_global_similarity_all_period["CAMS_EU_Reanalyses_vs_CAMS_Global"][key].append(dict_cams_eu_vs_cams_global_current_datetime[key])
+
+    '''
     # GEOS CF vs CAMS Global
     if not_available_goes_cf == False and not_available_cams_global== False and ds_current_date_cams_global is not None:
         dict_geos_cf_vs_cams_global_current_datetime = compute_global_similarity(   np_current_date_air_pol_geos_cf_cams_global, \
@@ -910,7 +928,7 @@ for time in range(diff_dates_hours):
         for key in dict_global_similarity_current_month["GEOS_CF_vs_CAMS_Global"]:
             dict_global_similarity_current_month["GEOS_CF_vs_CAMS_Global"][key] += dict_geos_cf_vs_cams_global_current_datetime[key]
             dict_global_similarity_all_period["GEOS_CF_vs_CAMS_Global"][key] += dict_geos_cf_vs_cams_global_current_datetime[key]
-
+    
     # ------------- 0,25° x 0,25° --> GEOS CF -------------
 
     # CAMS EU vs GEOS CF
@@ -922,17 +940,18 @@ for time in range(diff_dates_hours):
         for key in dict_global_similarity_current_month["CAMS_EU_vs_GEOS_CF"]:
             dict_global_similarity_current_month["CAMS_EU_vs_GEOS_CF"][key] += dict_cams_eu_vs_geos_cf_current_datetime[key]
             dict_global_similarity_all_period["CAMS_EU_vs_GEOS_CF"][key] += dict_cams_eu_vs_geos_cf_current_datetime[key]
-
+    '''
     # ---------------------------------------- Heatmap error ----------------------------------------
     
     # ------------- Abosolute difference 0,75° x 0,75° --> CAMS GLOBAL -------------
 
     # CAMS EU vs CAMS Global
-    if not_available_cams_eu == False and not_available_cams_global == False and ds_current_date_cams_global is not None:
+    if not_available_cams_eu_reanalyses == False and not_available_cams_global == False and ds_current_date_cams_global is not None:
         perc_abs_cams_eu_vs_cams_global = perc_abs_err(np_current_date_air_pol_cams_eu_cams_global, np_current_date_air_pol_cams_global)
     else:
         perc_abs_cams_eu_vs_cams_global = np.zeros_like(np_current_date_air_pol_cams_eu_cams_global)
 
+    '''
     # GEOS CF vs CAMS Global
     if not_available_goes_cf == False and not_available_cams_global== False and ds_current_date_cams_global is not None:
         perc_abs_geos_cf_vs_cams_global = perc_abs_err(np_current_date_air_pol_geos_cf_cams_global, np_current_date_air_pol_cams_global)
@@ -946,41 +965,46 @@ for time in range(diff_dates_hours):
         perc_abs_cams_eu_vs_geos_cf = perc_abs_err(np_current_date_air_pol_cams_eu_geos_cf, np_current_date_air_pol_geos_cf)
     else:
         perc_abs_cams_eu_vs_geos_cf = np.zeros_like(np_current_date_air_pol_cams_eu_geos_cf)
-
+    '''
+    
     # ------------- Plot Abosolute difference -------------
-
+    '''
     title_0_25_cams_eu_abs_perc =   title + " CAMS EU " + str(list_numeric_model_cams_eu[idx_numeric_model_cams_eu]) + \
                                     "ABS PERC (0,25° x 0,25°)"
     title_0_25_geos_cf_abs_perc =  title + "ABS PERC GEOS CF (0,25° x 0,25°)"
+    '''
 
     title_0_75_cams_eu_abs_perc =   title + " CAMS EU " + str(list_numeric_model_cams_eu[idx_numeric_model_cams_eu]) + \
                                     "ABS PERC (0,75° x 0,75°)"
-    title_0_75_geos_cf_abs_perc =  title + "ABS PERC GEOS CF (0,75° x 0,75°)"
+    #title_0_75_geos_cf_abs_perc =  title + "ABS PERC GEOS CF (0,75° x 0,75°)"
     title_0_75_cams_global_abs_perc =  title + "ABS PERC CAMS GLOBAL (0,75° x 0,75°)"
 
-    path_img_0_25_abs_perc = joinpath(PATH_CURRENT_MONTH_DIR_PLOTS, current_date.strftime("%Y-%m-%dT%H-%M-%S") + "_0_25_ABS_PERC.jpg")
+    #path_img_0_25_abs_perc = joinpath(PATH_CURRENT_MONTH_DIR_PLOTS, current_date.strftime("%Y-%m-%dT%H-%M-%S") + "_0_25_ABS_PERC.jpg")
     path_img_0_75_abs_perc = joinpath(PATH_CURRENT_MONTH_DIR_PLOTS, current_date.strftime("%Y-%m-%dT%H-%M-%S") + "_0_75_ABS_PERC.jpg")
 
+    '''
     # All methods in 0,25° x 0,25° --> GEOS CF
     list_air_pollutant_0_25_abs_diff_ds = [
                                             np.zeros_like(ds_current_date_geos_cf.to_array()),
                                             perc_abs_cams_eu_vs_geos_cf,
                                         ]
+    '''
     
     # All methods in 0,75° x 0,75° --> CAMS GLOBAL
     list_air_pollutant_0_75_abs_diff_ds = [
-                                            np.zeros_like(perc_abs_geos_cf_vs_cams_global), 
-                                            perc_abs_geos_cf_vs_cams_global,
+                                            np.zeros_like(perc_abs_cams_eu_vs_cams_global),
                                             perc_abs_cams_eu_vs_cams_global
                                         ]
 
+    '''
     if not_available_goes_cf == False and not_available_cams_eu == False:
         plot_heatmap_0_25(  lon_italy_bnds, lat_italy_bnds, list_idx_0_25_lat, list_idx_0_25_lon, list_air_pollutant_0_25_abs_diff_ds, 100.0, \
                             title_0_25_cams_eu_abs_perc, title_0_25_geos_cf_abs_perc, savefig = True, path_fig=path_img_0_25_abs_perc, dpi=300)
-    
+    '''
+
     if not_available_cams_global == False and ds_current_date_cams_global is not None:
         plot_heatmap_0_75(  lon_italy_bnds, lat_italy_bnds, list_idx_0_75_lat, list_idx_0_75_lon, list_air_pollutant_0_75_abs_diff_ds, 100.0, \
-                            title_0_75_cams_eu_abs_perc, title_0_75_geos_cf_abs_perc, title_0_75_cams_global_abs_perc, savefig = True, path_fig=path_img_0_75_abs_perc, dpi=300)
+                            title_0_75_cams_eu_abs_perc, title_0_75_cams_global_abs_perc, savefig = True, path_fig=path_img_0_75_abs_perc, dpi=300)
         
     previous_date = current_date
     current_date += delta
@@ -988,16 +1012,22 @@ for time in range(diff_dates_hours):
 # Save dict_global_similarity_current_month
 for key in dict_global_similarity_all_period:
             
-    if key == "CAMS_EU_vs_CAMS_Global":
-        count = count_cams_eu_cams_global_all
-    elif key == "GEOS_CF_vs_CAMS_Global":
-        count = count_geos_cf_cams_global_all
-    else:
-        count = count_cams_eu_geos_cf_all
-
     for key_1 in dict_global_similarity_all_period[key]:
-        dict_global_similarity_all_period[key][key_1] /= count
+        dict_global_similarity_all_period[key][key_1] = np.mean(np.array(dict_global_similarity_all_period[key][key_1]))
 
 with open(path_json_file_global_similarity_all_period, 'w') as json_file:
     json_dumps_str = json.dumps(dict_global_similarity_all_period, indent=4)
     json_file.write(json_dumps_str)
+
+path_latex_file_global_similarity_all_period = joinpath(PATH_DIR_PLOTS, "CAMS_EU_Reanalyses_vs_CAMS_Global.txt")
+
+with open(path_latex_file_global_similarity_all_period, 'a') as latex_txt_file:
+    
+    string_output = cams_eu + " & "
+
+    for key_1 in dict_global_similarity_all_period["CAMS_EU_Reanalyses_vs_CAMS_Global"][key_1]:
+        string_output += " " + str(round(dict_global_similarity_all_period[key][key_1],3)) + " & "
+
+    latex_txt_file.write(string_output)
+
+

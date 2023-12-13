@@ -269,7 +269,12 @@ def initial_check(df_air_pol_metainfo, cod_station):
     end_year = end_date_time_to_display.year
 
     df_station_info = df_air_pol_metainfo.filter(like=cod_station, axis=0)
-    station_region = df_station_info["Regione"].values[0]
+
+    try:
+        station_region = df_station_info["Regione"].values[0]
+    except:
+        print("Code station " + cod_station + " not found")
+        exit(-2)
 
     for current_year in range(start_year, end_year):
         
@@ -300,7 +305,13 @@ def load_EEA_station(
     
     # Retrive the meta info of current station 
     df_station_info = df_air_pol_metainfo.filter(like=cod_station, axis=0)
-    station_region = df_station_info["Regione"].values[0]
+
+    try:
+        station_region = df_station_info["Regione"].values[0]
+    except:
+        print("Code station " + cod_station + " not found")
+        exit(-2)
+
     lon_station = float(df_station_info["Longitude"].values[0])
     lat_station = float(df_station_info["Latitude"].values[0])
     
@@ -340,9 +351,12 @@ def load_EEA_station(
     df_all_datetime = pd.DataFrame(list(zip(dates, conc_dates_nan)), columns=['DatetimeBegin', 'Concentration'])
     df_all_datetime = df_all_datetime.set_index('DatetimeBegin')
 
-    for index, row in df_station_date_current_year.iterrows():
-        df_all_datetime.loc[index]["Concentration"] = df_station_date_current_year.loc[index]["Concentration"] 
-    
+    for index, row in df_station_date_current_year.iterrows(): 
+        try:
+            df_all_datetime.loc[index]["Concentration"] = df_station_date_current_year.loc[index]["Concentration"]
+        except:
+            df_all_datetime.loc[index]["Concentration"] = df_station_date_current_year.loc[index]["Concentration"].values[0]
+
     # Interpolation of measures
     df_all_datetime['Concentration'].interpolate(method='linear', inplace=True, limit_direction='both')
     
@@ -574,6 +588,7 @@ for time in range(diff_dates_hours):
 
 # Last day
 if freq_mode == "day":
+    list_datetime_x.append(current_date.isoformat())
     for cod_station in list_cod_stations:
         dict_values_cams_eu_reanalyses[cod_station].append(float(np.mean(dict_hours_of_current_day_cams_eu_reanalyses[cod_station])))
         dict_values_cams_eu_analyses[cod_station].append(float(np.mean(dict_hours_of_current_day_cams_eu_analyses[cod_station])))
@@ -586,31 +601,17 @@ if PATH_DIR_PLOTS == "":
     print("Error: set the environmental variables of Plot_dir")
     exit(-1)
 
-if not os.path.exists(PATH_DIR_PLOTS):
-  os.mkdir(PATH_DIR_PLOTS)
-
 PATH_DIR_PLOTS = joinpath(PATH_DIR_PLOTS, "EEA_plots_CAMS_Reanalyses_Analyses_" + str(model_level_air_pollution) + "_pm_" + str(model_level_pm) + "_camsEU_" + str(list_numeric_model_cams_eu[idx_numeric_model_cams_eu]))
-
-if not os.path.exists(PATH_DIR_PLOTS):
-    os.mkdir(PATH_DIR_PLOTS)
-
 PATH_DIR_PLOTS = joinpath(PATH_DIR_PLOTS, air_poll_selected)
-
-if not os.path.exists(PATH_DIR_PLOTS):
-    os.mkdir(PATH_DIR_PLOTS)
 
 if air_poll_selected == "CO" and co_in_ug_m3:
     PATH_DIR_PLOTS = joinpath(PATH_DIR_PLOTS, "CO_ug_m^3")
 elif air_poll_selected == "CO":
     PATH_DIR_PLOTS = joinpath(PATH_DIR_PLOTS, "CO_mg_m^3")
 
-if not os.path.exists(PATH_DIR_PLOTS):
-    os.mkdir(PATH_DIR_PLOTS)
-
 PATH_DIR_PLOTS = joinpath(PATH_DIR_PLOTS, freq_mode)
 
-if not os.path.exists(PATH_DIR_PLOTS):
-    os.mkdir(PATH_DIR_PLOTS)
+os.makedirs(PATH_DIR_PLOTS, exist_ok=True)
 
 for cod_station in list_cod_stations:
     
@@ -619,19 +620,12 @@ for cod_station in list_cod_stations:
 
     PATH_DIR_PLOTS_current = joinpath(PATH_DIR_PLOTS, type_stations)
 
-    if not os.path.exists(PATH_DIR_PLOTS_current):
-        os.mkdir(PATH_DIR_PLOTS_current)
-    
     region_cod_station = dict_code_stations[cod_station][2]
     PATH_DIR_PLOTS_current = joinpath(PATH_DIR_PLOTS_current, region_cod_station)
 
-    if not os.path.exists(PATH_DIR_PLOTS_current):
-        os.mkdir(PATH_DIR_PLOTS_current)
-
     PATH_DIR_PLOTS_current = joinpath(PATH_DIR_PLOTS_current, cod_station)
 
-    if not os.path.exists(PATH_DIR_PLOTS_current):
-        os.mkdir(PATH_DIR_PLOTS_current)
+    os.makedirs(PATH_DIR_PLOTS_current, exist_ok=True)
 
     plot(   
             cod_station, air_poll_selected, dict_values_EEA_station[cod_station], \

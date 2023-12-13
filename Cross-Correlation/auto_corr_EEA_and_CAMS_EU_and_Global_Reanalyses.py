@@ -435,6 +435,7 @@ for time in range(diff_dates_hours):
 
 # Last day
 if freq_mode == "day":
+    list_datetime_x.append(current_date.isoformat())
     for cod_station in list_cod_stations:
         dict_values_cams_eu_reanalyses[cod_station].append(float(np.mean(dict_hours_of_current_day_cams_eu_reanalyses[cod_station])))
         dict_values_cams_global_reanalyses[cod_station].append(float(np.mean(dict_hours_of_current_day_cams_global_reanalyses[cod_station])))
