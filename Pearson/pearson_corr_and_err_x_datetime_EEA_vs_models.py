@@ -338,8 +338,23 @@ def load_EEA_station(
     df_all_datetime = df_all_datetime.set_index('DatetimeBegin')
 
     for index, row in df_station_date_current_year.iterrows():
-        df_all_datetime.loc[index]["Concentration"] = df_station_date_current_year.loc[index]["Concentration"] 
-    
+        try:
+            value_concentration = df_station_date_current_year.loc[index]["Concentration"]
+
+            if value_concentration != -9999.0:
+                if value_concentration < 0.0:
+                    df_all_datetime.loc[index]["Concentration"] = 0.0
+                else:
+                    df_all_datetime.loc[index]["Concentration"] = df_station_date_current_year.loc[index]["Concentration"]
+        except:
+            value_concentration = df_station_date_current_year.loc[index]["Concentration"].values[0]
+
+            if value_concentration != -9999.0:
+                if value_concentration < 0.0:
+                    df_all_datetime.loc[index]["Concentration"] = 0.0
+                else:
+                    df_all_datetime.loc[index]["Concentration"] = df_station_date_current_year.loc[index]["Concentration"].values[0]
+                    
     # Interpolation of measures
     df_all_datetime['Concentration'].interpolate(method='linear', inplace=True, limit_direction='both')
     

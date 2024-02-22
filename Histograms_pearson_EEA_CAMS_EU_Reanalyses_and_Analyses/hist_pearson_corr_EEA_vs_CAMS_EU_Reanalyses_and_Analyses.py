@@ -408,10 +408,22 @@ def load_EEA_station(
 
     for index, row in df_station_date_current_year.iterrows():
         try:
-            df_all_datetime.loc[index]["Concentration"] = df_station_date_current_year.loc[index]["Concentration"]
+            value_concentration = df_station_date_current_year.loc[index]["Concentration"]
+
+            if value_concentration != -9999.0:
+                if value_concentration < 0.0:
+                    df_all_datetime.loc[index]["Concentration"] = 0.0
+                else:
+                    df_all_datetime.loc[index]["Concentration"] = df_station_date_current_year.loc[index]["Concentration"]
         except:
-            df_all_datetime.loc[index]["Concentration"] = df_station_date_current_year.loc[index]["Concentration"].values[0]
-            
+            value_concentration = df_station_date_current_year.loc[index]["Concentration"].values[0]
+
+            if value_concentration != -9999.0:
+                if value_concentration < 0.0:
+                    df_all_datetime.loc[index]["Concentration"] = 0.0
+                else:
+                    df_all_datetime.loc[index]["Concentration"] = df_station_date_current_year.loc[index]["Concentration"].values[0]
+                            
     # Interpolation of measures
     df_all_datetime['Concentration'].interpolate(method='linear', inplace=True, limit_direction='both')
 
@@ -546,8 +558,8 @@ for time in range(diff_dates_hours):
         for cod_station in list_cod_stations:
 
             for current_cams_eu in list_numeric_model_cams_eu:
-                dict_all_cams_eu_reanalyses[current_cams_eu][cod_station].append(float(np.mean(dict_all_hours_of_current_day_cams_eu_reanalyses[current_cams_eu][cod_station])))
-                dict_all_cams_eu_analyses[current_cams_eu][cod_station].append(float(np.mean(dict_all_hours_of_current_day_cams_eu_analyses[current_cams_eu][cod_station])))
+                dict_all_cams_eu_reanalyses[current_cams_eu][cod_station].append(float(np.nanmean(dict_all_hours_of_current_day_cams_eu_reanalyses[current_cams_eu][cod_station])))
+                dict_all_cams_eu_analyses[current_cams_eu][cod_station].append(float(np.nanmean(dict_all_hours_of_current_day_cams_eu_analyses[current_cams_eu][cod_station])))
 
             dict_all_hours_of_current_day_cams_eu_reanalyses[current_cams_eu][cod_station] = []
             dict_all_hours_of_current_day_cams_eu_analyses[current_cams_eu][cod_station] = []
@@ -659,8 +671,8 @@ if freq_mode == "day":
     list_datetime_x.append(current_date.isoformat())
     for cod_station in list_cod_stations:
         for current_cams_eu in list_numeric_model_cams_eu:
-            dict_all_cams_eu_reanalyses[current_cams_eu][cod_station].append(float(np.mean(dict_all_hours_of_current_day_cams_eu_reanalyses[current_cams_eu][cod_station])))
-            dict_all_cams_eu_analyses[current_cams_eu][cod_station].append(float(np.mean(dict_all_hours_of_current_day_cams_eu_analyses[current_cams_eu][cod_station])))
+            dict_all_cams_eu_reanalyses[current_cams_eu][cod_station].append(float(np.nanmean(dict_all_hours_of_current_day_cams_eu_reanalyses[current_cams_eu][cod_station])))
+            dict_all_cams_eu_analyses[current_cams_eu][cod_station].append(float(np.nanmean(dict_all_hours_of_current_day_cams_eu_analyses[current_cams_eu][cod_station])))
 
 # ------------------ Interpolation of CAMS Europe Analyses ------------------
 for cod_station in list_cod_stations:
