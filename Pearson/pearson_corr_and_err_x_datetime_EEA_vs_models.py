@@ -337,11 +337,22 @@ def load_EEA_station(
     df_all_datetime = pd.DataFrame(list(zip(dates, conc_dates_nan)), columns=['DatetimeBegin', 'Concentration'])
     df_all_datetime = df_all_datetime.set_index('DatetimeBegin')
 
+    # Dictionary of limit threshoulds of air pollutants, expressed
+    # in μg/m^3, used for checking if the measurements of EEA station are valid
+    dict_local_limit_threshould_air_pollutant = {}
+
+    dict_local_limit_threshould_air_pollutant["CO"] = 15000
+    dict_local_limit_threshould_air_pollutant["NO2"] = 700
+    dict_local_limit_threshould_air_pollutant["O3"] = 500
+    dict_local_limit_threshould_air_pollutant["PM10"] = 1000
+    dict_local_limit_threshould_air_pollutant["PM2.5"] = 700
+    dict_local_limit_threshould_air_pollutant["SO2"] = 1200
+
     for index, row in df_station_date_current_year.iterrows():
         try:
             value_concentration = df_station_date_current_year.loc[index]["Concentration"]
 
-            if value_concentration != -9999.0:
+            if value_concentration != -9999.0 and value_concentration <= dict_local_limit_threshould_air_pollutant[air_poll_selected]:
                 if value_concentration < 0.0:
                     df_all_datetime.loc[index]["Concentration"] = 0.0
                 else:
@@ -349,7 +360,7 @@ def load_EEA_station(
         except:
             value_concentration = df_station_date_current_year.loc[index]["Concentration"].values[0]
 
-            if value_concentration != -9999.0:
+            if value_concentration != -9999.0 and value_concentration <= dict_local_limit_threshould_air_pollutant[air_poll_selected]:
                 if value_concentration < 0.0:
                     df_all_datetime.loc[index]["Concentration"] = 0.0
                 else:
